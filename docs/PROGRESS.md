@@ -17,6 +17,10 @@ Everyone adds a log entry at the end of every session (newest at the top of the 
 | Zoho Books integration | Naveen | Not started | | Needs Zoho admin access |
 | Payments, reminders, job closure | Naveen | Not started | | |
 | Dashboard | Naveen | Not started | | |
+| WhatsApp intake + technician messages (R3, X1) | Naveen | Not started | | Needs BITA's WhatsApp Business number |
+| Financial reports from Zoho (X4) | Naveen | Not started | | Needs Zoho access |
+| Submission checks + correction history view (X2, X3) | Pavana | Not started | | Database side done in setup PR |
+| Qualification + equipment registers (R19–R20, R29–R31) | Krishna | Not started | | |
 | Glossary | Krishna | Not started | | |
 | Test data | Krishna | Not started | | |
 | Client inputs tracker | Krishna | Not started | | See `docs/CLIENT_INPUTS.md` |
