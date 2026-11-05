@@ -61,8 +61,8 @@ beforeAll(async () => {
 
 describe("job numbers", () => {
   it("numbers jobs per financial year as BITA/YY-YY/0001", async () => {
-    const a = await db.query<{ n: string }>("select next_job_no() as n");
-    const b = await db.query<{ n: string }>("select next_job_no() as n");
+    const a = await db.query<{ n: string }>("select private.next_job_no() as n");
+    const b = await db.query<{ n: string }>("select private.next_job_no() as n");
     expect(a.rows[0].n).toMatch(/^BITA\/\d{2}-\d{2}\/\d{4}$/);
     expect(Number(b.rows[0].n.slice(-4))).toBe(Number(a.rows[0].n.slice(-4)) + 1);
   });

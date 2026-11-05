@@ -61,6 +61,13 @@ Next: <the next concrete step>
 Blockers / questions: <or "none">
 ```
 
+### 2026-11-05 17:00 – Naveen – Claude Code
+Task: BITA: Set up repository, database and team access
+Done: Dev Supabase project `bita-dev` created; both migrations applied; security advisor clean (one info note: job_counters has no policies, on purpose). `lib/db/types.ts` generated and the Supabase clients are typed. `.env.local` ready to share privately.
+Files changed: supabase/migrations/20261105010000_private_helpers.sql, lib/db/types.ts, lib/supabase/, supabase/tests/, docs/
+Next: storage buckets, login page, `lib/field/`; load Krishna's test data when it lands.
+Blockers / questions: none new.
+
 ### 2026-11-05 – Naveen – Claude Code
 Task: BITA: Set up repository, database and team access
 Done: BITA's requirements (R1–R41, X1–X4) and files received; full scope agreed (D-008). Next.js app skeleton, Supabase client helpers, first database schema with roles, Row Level Security, Job ID numbering, report approval and readings checks, one-GST-invoice-per-job rule and correction log. 11 database tests pass (npm test). `.gitignore` keeps client files out of git.
