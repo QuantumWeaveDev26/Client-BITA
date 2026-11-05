@@ -9,26 +9,32 @@ Everyone adds a log entry at the end of every session (newest at the top of the 
 | --- | --- | --- | --- | --- |
 | Repo, schema, roles, security | Naveen | In review | feature/naveen-setup | App skeleton + first schema with RLS and correction log; Supabase project not created yet |
 | Email intake + AI extraction | Naveen | Not started | | |
-| Customer and enquiry screens | Pavana | Not started | | |
-| Jobs, quotations, POs, scheduling | Pavana | Not started | | |
-| Technician field form | Pavana | Not started | | |
-| Report templates + approval + PDF | Pavana | Not started | | Needs BITA samples |
+| Customer and enquiry screens | Naveen | Not started | | |
+| Jobs, quotations, POs, scheduling | Naveen | Not started | | |
+| Technician field form | Naveen | Not started | | |
+| Report templates + approval + PDF | Naveen | Not started | | Needs BITA samples |
 | AI report drafting | Naveen | Not started | | |
 | Zoho Books integration | Naveen | Not started | | Needs Zoho admin access |
 | Payments, reminders, job closure | Naveen | Not started | | |
 | Dashboard | Naveen | Not started | | |
 | WhatsApp intake + technician messages (R3, X1) | Naveen | Not started | | Needs BITA's WhatsApp Business number |
 | Financial reports from Zoho (X4) | Naveen | Not started | | Needs Zoho access |
-| Submission checks + correction history view (X2, X3) | Pavana | Not started | | Database side done in setup PR |
-| Qualification + equipment registers (R19–R20, R29–R31) | Krishna | Not started | | |
+| Submission checks + correction history view (X2, X3) | Naveen | Not started | | Database side done in setup PR |
+| Qualification + equipment registers (R19–R20, R29–R31) | Naveen | Not started | | |
 | Glossary | Krishna | Not started | | |
 | Test data | Krishna | Not started | | |
 | Client inputs tracker | Krishna | Not started | | See `docs/CLIENT_INPUTS.md` |
-| Excel import | Krishna | Not started | | Needs BITA lists |
-| Smoke tests | Krishna | Not started | | |
+| Excel import | Naveen | Not started | | Needs BITA lists |
+| Smoke tests | Naveen | Not started | | |
 | User guide | Krishna | Not started | | |
 
 Status values: Not started · In progress · In review · Done · Blocked
+
+## Bugs (Krishna adds after each evening's testing; Naveen fixes)
+
+| Date | Page | Steps to repeat | What happened | What should happen | Status |
+| --- | --- | --- | --- | --- | --- |
+| | | | | | |
 
 ## Requests (someone needs something from another area)
 
