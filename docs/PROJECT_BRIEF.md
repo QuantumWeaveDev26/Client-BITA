@@ -38,9 +38,25 @@ Customer Enquiry → Customer Registration → Job Identification → PO / Quota
 | 8 | Payments | Outstanding tracked per invoice; reminders on BITA's schedule; payment status from Zoho; job closes when report is sent and invoice is paid |
 | 9 | Dashboard | Customers, enquiries, pending quotes and POs, active and completed jobs, technician schedules, reports, invoices, outstanding payments, revenue, summaries |
 
-**Follows after delivery (depends on outside approvals or BITA documents):** WhatsApp Business API auto-capture (needs Meta business verification; until then office logs WhatsApp enquiries), offline mode for the field form, expense sync per job, trend analytics.
+**BITA's requirements document (5 Nov 2026) replaces the table above where they differ.** It lists R1–R41 and X1–X4, and all of them are in scope (D-008). The main differences:
+
+- Enquiries arrive in two Gmail mailboxes, one for TDPS and one for all other customers, plus a dedicated WhatsApp Business number captured automatically (R2, R3).
+- There is no standard rate list: management types prices on each quotation, and past quotations must be searchable (R9). Quotations have no expiry (R11). No PO is needed before work starts (R14).
+- One job can have several reports, and each keeps BITA's existing report number (R16).
+- Technicians have **no logins**. They work over WhatsApp: daily assignments, acknowledgements, delays, leave, equipment and site issues, photos, and readings through a per-job phone link (R21, X1).
+- There is a qualification register with an expiry flag when assigning (R19, R20), and an equipment register covering 4 UT flaw detectors and 2 MPI yokes (R29–R31).
+- Mandatory readings are checked on submission, and a report can't be prepared until they're complete (X2). Every correction keeps the old value, the new value, who and when, and management is told (R28, X3).
+- Signatures and seal go on a report only after approval (R27).
+- The proforma step is for TDPS only, set customer by customer (R33, R34).
+- Reminders go out 2 days before the due date, on the due date, then daily from the 5th day after it (R35). They're sent from the mailbox for that customer (R36), and management can pause them (R37).
+- The dashboard shows 3 numbers: active jobs, pending reports, outstanding payments (R39).
+- Financial reports are read from Zoho Books (X4).
+
+**Follows after delivery:** offline mode for the field form, trend analytics.
 
 ## 4. Data model (first version; Naveen owns the schema)
+
+The live schema is `supabase/migrations/`. It supersedes the table below where they differ (e.g. `people` + `qualifications` replace `technicians`; `assignments` replace `schedules`; `audit_log` holds every correction).
 
 | Table | Key fields | Links to |
 | --- | --- | --- |
@@ -64,7 +80,9 @@ Customer Enquiry → Customer Registration → Job Identification → PO / Quota
 | management | Everything, including dashboard, quotation approval, fresh-quote decision |
 | office | Enquiries, customers, quotations, POs, jobs, scheduling, billing |
 | reviewer | Review, approve or return reports |
-| technician | See own assigned jobs; submit field data and photos |
+| technician | No login (R21). Works over WhatsApp and a per-job phone link; the server writes their data |
+
+Users at delivery: two people, both with management and reviewer rights (R40). The office role stays available but nobody holds it yet.
 
 ## 6. Zoho Books rules
 

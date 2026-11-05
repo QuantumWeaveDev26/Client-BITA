@@ -39,25 +39,34 @@ The human also posts a short check-in on the TeamSync project "BITA – Business
 | Accounting | Zoho Books API (India) |
 | Hosting | Decided by Naveen at setup (Vercel or Hostinger) |
 
-UI library, test runner and folder details are fixed at repository setup on Tue 3 Nov and recorded in `docs/DECISIONS.md`.
+UI library, test runner and folder details are recorded in `docs/DECISIONS.md` (D-010): Next.js 15, Tailwind CSS, Vitest.
 
 ## Who owns which folder
 
-Do not change files outside your area without asking the owner first. If you need something in another area, write a request in `docs/PROGRESS.md` under **Requests** and tell the owner.
+**Each file has exactly one owner. Only the owner (and their coding agent) edits it.** This is how three people work at the same time without overwriting each other.
+If you need something in another area, write a request in `docs/PROGRESS.md` under **Requests** and tell the owner. Do not "quickly fix" someone else's file.
+Before creating a new file, check that its folder is in your rows below. If it is not, ask Naveen where it goes.
 
-| Area | Owner | Paths (final names set at repo setup) |
+| Area | Owner | Paths |
 | --- | --- | --- |
-| Database schema, migrations, roles and security | Naveen | `supabase/` |
-| Zoho Books integration | Naveen | `lib/zoho/`, `n8n/zoho-*` |
-| Email intake, AI extraction, reminders | Naveen | `n8n/`, `lib/ai/` |
+| Database schema, migrations, roles and security, database tests | Naveen | `supabase/` |
+| Database types and Supabase clients (everyone imports, only Naveen edits) | Naveen | `lib/supabase/`, `lib/db/` |
+| Login and app shell | Naveen | `app/layout.tsx`, `app/page.tsx`, `app/globals.css`, `app/(auth)/`, `middleware.ts` |
+| Technician phone link: token check and saving submissions | Naveen | `lib/field/` |
+| Email intake (two mailboxes), WhatsApp intake and technician messages, AI extraction | Naveen | `n8n/`, `lib/ai/`, `lib/whatsapp/`, `app/api/` |
+| Zoho Books, reminders, financial reports | Naveen | `lib/zoho/`, `app/(finance)/` |
 | Management dashboard | Naveen | `app/dashboard/` |
-| Deployment, environment, CI | Naveen | config files, `.github/` |
-| Office screens: customers, enquiries, jobs, quotations, POs, scheduling | Pavana | `app/(office)/` |
-| Technician field form | Pavana | `app/(field)/` |
-| Report templates, review and approval, report PDFs | Pavana | `app/(reports)/`, `templates/reports/` |
+| Dependencies, config, deployment, CI | Naveen | `package.json`, `package-lock.json`, `*.config.*`, `tsconfig.json`, `.env.example`, `.gitignore`, `.github/` |
+| Office screens: customers, contacts, enquiries, quotations, jobs, POs, assignments | Pavana | `app/(office)/` (except `registers/`) |
+| Office menu and page layout | Pavana | `app/(office)/layout.tsx` |
+| Technician phone form (screens) | Pavana | `app/(field)/` |
+| Reports: templates, required fields per method, review, approval, PDF, correction history view | Pavana | `app/(reports)/`, `templates/reports/`, `lib/reports/` |
+| Shared UI components (others use them, ask Pavana for changes) | Pavana | `components/` |
+| Qualification and equipment registers (screens) | Krishna | `app/(office)/registers/` |
 | Test data, Excel import, smoke tests | Krishna | `scripts/seed/`, `scripts/import/`, `tests/` |
-| User guide, glossary, client inputs tracker | Krishna | `docs/guide/`, `docs/GLOSSARY.md`, `docs/CLIENT_INPUTS.md` |
-| Shared UI components | Pavana (Naveen reviews) | `components/` |
+| Glossary, client inputs tracker, user guide | Krishna | `docs/GLOSSARY.md`, `docs/CLIENT_INPUTS.md`, `docs/guide/` |
+| Shared docs: everyone edits only their own row, log entry or handoff | All | `docs/PROGRESS.md`, `docs/HANDOFF.md` |
+| Project rules and plans | Naveen | `AGENTS.md`, `CLAUDE.md`, `docs/PROJECT_BRIEF.md`, `docs/WORK_PLAN.md`, `docs/DECISIONS.md` |
 
 ## Hard rules
 
@@ -70,9 +79,11 @@ Do not change files outside your area without asking the owner first. If you nee
 7. **Roles are enforced in the database** (Row Level Security), not only in the UI. Roles: `management`, `office`, `reviewer`, `technician`.
 8. **Branches and pull requests.** Branch name `feature/<your-name>-<topic>`. Never push to `main`. One feature per pull request. Naveen reviews and merges.
 9. **Before opening a pull request:** lint, type check and tests pass; screens checked at phone width (375 px); `docs/PROGRESS.md` updated.
-10. **No new dependency** without a one-line reason in the pull request.
+10. **No new dependency** without a one-line reason. Only Naveen edits `package.json`: ask under Requests, he adds it on `main`, you pull.
 11. **Do not invent business rules.** If unsure, write the question under **Open questions** in `docs/PROGRESS.md` and ask the human. Only Naveen contacts BITA.
 12. The human must understand every change before it is committed. Explain changes in plain words in the pull request.
+13. **Keep your branch fresh.** Every morning and before opening a pull request: `git fetch origin && git rebase origin/main`. Small pull requests, at least one per day, so nobody's work drifts.
+14. **Use the database types.** Import table types from `lib/db/` and the Supabase client from `lib/supabase/`. Never copy them into your own folder.
 
 ## Conventions
 
