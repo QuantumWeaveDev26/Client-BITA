@@ -7,7 +7,7 @@ Everyone adds a log entry at the end of every session (newest at the top of the 
 
 | Area | Owner | Status | Branch / PR | Notes |
 | --- | --- | --- | --- | --- |
-| Repo, schema, roles, security | Naveen | In review | feature/naveen-setup | App skeleton + first schema with RLS and correction log; Supabase project not created yet |
+| Repo, schema, roles, security | Naveen | In review | feature/naveen-atlas-setup | Atlas worktree ready; no eligible unowned task until T1 / PR 3 is merged. Existing setup status retained pending review. |
 | Email intake + AI extraction | Naveen | Not started | | |
 | Customer and enquiry screens | Naveen | Not started | | |
 | Jobs, quotations, POs, scheduling | Naveen | Not started | | |
@@ -66,6 +66,13 @@ Files changed: <main files or folders>
 Next: <the next concrete step>
 Blockers / questions: <or "none">
 ```
+
+### 2026-11-05 17:49 – Naveen – Codex
+Task: Agent registration and isolated worktree setup
+Done: Read shared README in order and agent protocol; registered Atlas; fetched origin; verified PR 3 remains open. Created Atlas worktree from origin/main, copied ignored environment file privately, and installed existing dependencies. No application code changed and no task claimed because every unowned task has unmet Needs.
+Files changed: docs/PROGRESS.md, docs/HANDOFF.md
+Next: After Naveen reviews and merges PR 3, fetch origin/main and re-read STATE.md; claim T2 if it is still unowned.
+Blockers / questions: T1 merge required. npm install reported 11 dependency vulnerabilities; no dependency upgrades attempted.
 
 ### 2026-11-05 17:00 – Naveen – Claude Code
 Task: BITA: Set up repository, database and team access

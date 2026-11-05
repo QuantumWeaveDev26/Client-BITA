@@ -107,6 +107,17 @@ Decisions made in this session: <or "none">
 
 ## Handoff entries (newest first)
 
+### 2026-11-05 17:49 – Naveen – agent setup – from Codex to next session
+Branch: feature/naveen-atlas-setup (push planned at session end)
+Task: Agent registration and next eligible task selection
+Stopped at: Atlas worktree created at C:\BITA-wt\atlas from origin/main (2b29427); dependencies installed and ignored environment file copied. PR 3 is OPEN; no unowned queue task has its Needs met. No application code changed.
+Next step: After PR 3 is merged, fetch origin, re-read shared STATE.md and claim T2 if still available; create a feature branch from updated origin/main.
+Files touched: docs/PROGRESS.md, docs/HANDOFF.md; private coordination files outside repository.
+How to run / test: npm install completed; future dev server uses port 3002. No tests needed for setup documentation.
+Known problems: Queue blocked by T1 merge. npm install reports 11 dependency vulnerabilities.
+Decisions made in this session: none
+
+
 ### 2026-11-05 17:30 – Naveen – whole app – from Claude Code to Naveen's next session
 Branch: feature/naveen-db-types   (pushed: yes, PR 2)
 Task: BITA: Set up repository, database and team access
