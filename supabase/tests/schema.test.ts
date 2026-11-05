@@ -15,6 +15,12 @@ const SUPABASE_STANDIN = `
   create table auth.users (id uuid primary key);
   create function auth.uid() returns uuid language sql stable as
     $$ select nullif(current_setting('request.jwt.claim.sub', true), '')::uuid $$;
+  create schema storage;
+  create table storage.buckets (id text primary key, name text not null, public boolean default false);
+  create table storage.objects (id uuid primary key default gen_random_uuid(), bucket_id text references storage.buckets (id), name text, owner uuid);
+  alter table storage.objects enable row level security;
+  grant usage on schema storage to anon, authenticated, service_role;
+  grant all on storage.objects to authenticated, service_role;
   grant usage on schema public, auth to anon, authenticated, service_role;
   grant execute on function auth.uid() to anon, authenticated, service_role;
   alter default privileges in schema public grant all on tables to anon, authenticated, service_role;
@@ -167,6 +173,21 @@ describe("invoices", () => {
     await db.query(`insert into invoices (job_id, kind, zoho_id) values ($1, 'proforma', 'P-1')`, [job]);
     await db.query(`insert into invoices (job_id, kind, zoho_id) values ($1, 'tax_invoice', 'I-1')`, [job]);
     await expect(db.query(`insert into invoices (job_id, kind, zoho_id) values ($1, 'tax_invoice', 'I-2')`, [job])).rejects.toThrow();
+  });
+});
+
+describe("file storage", () => {
+  it("lets staff upload documents but only management upload signatures", async () => {
+    await as(OFFICE, "insert into storage.objects (bucket_id, name) values ('documents', 'po/test.pdf')");
+    await expect(
+      as(OFFICE, "insert into storage.objects (bucket_id, name) values ('branding', 'sig.png')"),
+    ).rejects.toThrow();
+    await as(REVIEWER, "insert into storage.objects (bucket_id, name) values ('branding', 'sig.png')");
+  });
+
+  it("hides files from a logged-in user who is not BITA staff", async () => {
+    const r = await as(OUTSIDER, "select * from storage.objects");
+    expect(r.rows).toHaveLength(0);
   });
 });
 

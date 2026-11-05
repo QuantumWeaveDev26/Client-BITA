@@ -9,7 +9,7 @@ Everyone adds a log entry at the end of every session (newest at the top of the 
 | --- | --- | --- | --- | --- |
 | Repo, schema, roles, security | Naveen | In review | feature/naveen-setup | App skeleton + first schema with RLS and correction log; Supabase project not created yet |
 | Email intake + AI extraction | Naveen | Not started | | |
-| Customer and enquiry screens | Naveen | Not started | | |
+| Customer and enquiry screens | Naveen | In review | feature/naveen-login-customers-enquiries | Login, customers with contacts, enquiries with customer link |
 | Jobs, quotations, POs, scheduling | Naveen | Not started | | |
 | Technician field form | Naveen | Not started | | |
 | Report templates + approval + PDF | Naveen | Not started | | Needs BITA samples |
@@ -66,6 +66,13 @@ Files changed: <main files or folders>
 Next: <the next concrete step>
 Blockers / questions: <or "none">
 ```
+
+### 2026-11-05 18:30 – Naveen – Claude Code
+Task: BITA: Customer and enquiry screens
+Done: Storage buckets (documents, branding, reports; staff only, signatures by management only), applied to bita-dev. Login page, office layout with menu, customers (list with search, new, edit, contacts with "receives reports/invoices"), enquiries (list with filters, manual entry for phone/WhatsApp/email, link to customer with automatic suggestion by sender email or mobile, status). 13 database tests pass; lint, type check and build pass; login page checked at 375 px.
+Files changed: supabase/migrations/20261106000000_storage.sql, app/(auth)/, app/(office)/, components/ui.tsx, lib/auth.ts, lib/forms.ts
+Next: quotations (letterhead PDF, past rates, approval), jobs and PO.
+Blockers / questions: logged-in screens not yet clicked through; needs the first login user in bita-dev.
 
 ### 2026-11-05 17:00 – Naveen – Claude Code
 Task: BITA: Set up repository, database and team access
