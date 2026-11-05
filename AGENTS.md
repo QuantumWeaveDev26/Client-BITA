@@ -12,6 +12,7 @@ Full context: `docs/PROJECT_BRIEF.md`.
 
 ## Start of every session (do these in order)
 
+0. **Naveen's agents (Claude Code, Apollo, Atlas):** first read `C:\BITA-shared\README.md` and `docs/AGENT_PROTOCOL.md`. They hold the shared state, task claims and handoffs.
 1. `git checkout main && git pull`, then switch to (or create) your branch.
 2. Read `docs/PROGRESS.md`: the status board and the last three log entries.
 3. Read the latest entry for your area in `docs/HANDOFF.md`, if there is one.

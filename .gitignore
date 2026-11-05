@@ -53,3 +53,9 @@ next-env.d.ts
 # supabase local
 supabase/.temp/
 supabase/.branches/
+
+# local tool settings
+/.claude/
+
+# October desktop — local canvas state
+.october/
