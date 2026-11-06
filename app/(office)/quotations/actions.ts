@@ -6,6 +6,7 @@ import { requireStaff } from "@/lib/auth";
 import { Constants, type Enums } from "@/lib/db/types";
 import { friendlyError, text } from "@/lib/forms";
 import { DEFAULT_QUOTATION_TERMS } from "./labels";
+import { buildQuotationStoragePath, validateQuotationFile } from "./upload";
 
 type Supabase = Awaited<ReturnType<typeof requireStaff>>["supabase"];
 
@@ -14,6 +15,20 @@ function num(fd: FormData, name: string): number | null {
   if (raw === null) return null;
   const parsed = Number(raw);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseOptionalNumber(raw: FormDataEntryValue | undefined): number | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  if (!trimmed) return null;
+  const parsed = Number(trimmed);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseOptionalText(raw: FormDataEntryValue | undefined): string | null {
+  if (typeof raw !== "string") return null;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 function quotationFields(fd: FormData) {
@@ -28,15 +43,44 @@ function quotationFields(fd: FormData) {
   };
 }
 
-// Stores an uploaded signed quotation PDF in the private documents bucket and records its path.
-async function saveQuotationPdf(supabase: Supabase, quotationId: string, fd: FormData): Promise<string | null> {
+// Stores an uploaded quotation file (PDF or Word, up to 6 MB) in the private documents bucket
+// under quotations/<quotation id>/<file> and records its path in quotations.pdf_path.
+async function saveQuotationFile(
+  supabase: Supabase,
+  quotationId: string,
+  fd: FormData,
+  requireFile = false,
+): Promise<string | null> {
   const file = fd.get("pdf_file");
-  if (!(file instanceof File) || file.size === 0) return null;
-  const path = `quotations/${quotationId}/${Date.now()}-${file.name.replace(/[^\w.-]+/g, "_")}`;
-  const { error } = await supabase.storage.from("documents").upload(path, file, { contentType: file.type });
+  if (!(file instanceof File) || file.size === 0) {
+    return requireFile ? "Please choose a PDF or Word quotation file to upload." : null;
+  }
+
+  const check = validateQuotationFile(file);
+  if (!check.ok) return check.error;
+
+  const path = buildQuotationStoragePath(quotationId, file.name);
+  const { error } = await supabase.storage
+    .from("documents")
+    .upload(path, file, { contentType: check.contentType, upsert: false });
   if (error) return error.message;
-  const { error: updateError } = await supabase.from("quotations").update({ pdf_path: path }).eq("id", quotationId);
+
+  const { error: updateError } = await supabase
+    .from("quotations")
+    .update({ pdf_path: path })
+    .eq("id", quotationId);
   return updateError?.message ?? null;
+}
+
+export async function uploadQuotationFile(quotationId: string, fd: FormData) {
+  const { supabase } = await requireStaff();
+  const fileError = await saveQuotationFile(supabase, quotationId, fd, true);
+  if (fileError) {
+    redirect(`/quotations/${quotationId}?error=` + encodeURIComponent(fileError));
+  }
+  revalidatePath(`/quotations/${quotationId}`);
+  revalidatePath("/quotations");
+  redirect(`/quotations/${quotationId}?saved=file`);
 }
 
 export async function createQuotation(fd: FormData) {
@@ -46,21 +90,51 @@ export async function createQuotation(fd: FormData) {
     redirect("/quotations/new?error=" + encodeURIComponent("Please choose a customer."));
   }
 
+  // Validate uploaded file before creating the quotation row if a file was selected.
+  const uploadedCandidate = fd.get("pdf_file");
+  if (uploadedCandidate instanceof File && uploadedCandidate.size > 0) {
+    const check = validateQuotationFile(uploadedCandidate);
+    if (!check.ok) {
+      redirect("/quotations/new?error=" + encodeURIComponent(check.error));
+    }
+  }
+
   const { data, error } = await supabase.from("quotations").insert(fields).select("id").single();
   if (error) redirect("/quotations/new?error=" + encodeURIComponent(friendlyError(error.message)));
 
-  // Optional first item entered directly on the new quotation screen.
-  const firstDesc = text(fd, "item_description");
-  if (firstDesc) {
-    await supabase.from("quotation_items").insert({
+  // Support one or more priced items entered directly on the new quotation screen.
+  const descriptions = fd.getAll("item_description");
+  const bases = fd.getAll("item_basis");
+  const rates = fd.getAll("item_rate");
+  const minCharges = fd.getAll("item_minimum_charge");
+  const itemNotes = fd.getAll("item_notes");
+
+  const itemsToInsert: Array<{
+    quotation_id: string;
+    position: number;
+    description: string;
+    basis: string | null;
+    rate: number | null;
+    minimum_charge: number | null;
+    notes: string | null;
+  }> = [];
+
+  for (let i = 0; i < descriptions.length; i += 1) {
+    const desc = parseOptionalText(descriptions[i]);
+    if (!desc) continue;
+    itemsToInsert.push({
       quotation_id: data.id,
-      position: 1,
-      description: firstDesc,
-      basis: text(fd, "item_basis"),
-      rate: num(fd, "item_rate"),
-      minimum_charge: num(fd, "item_minimum_charge"),
-      notes: text(fd, "item_notes"),
+      position: itemsToInsert.length + 1,
+      description: desc,
+      basis: parseOptionalText(bases[i]),
+      rate: parseOptionalNumber(rates[i]),
+      minimum_charge: parseOptionalNumber(minCharges[i]),
+      notes: parseOptionalText(itemNotes[i]),
     });
+  }
+
+  if (itemsToInsert.length > 0) {
+    await supabase.from("quotation_items").insert(itemsToInsert);
   }
 
   if (fields.enquiry_id) {
@@ -73,10 +147,11 @@ export async function createQuotation(fd: FormData) {
     revalidatePath("/enquiries");
   }
 
-  const fileError = await saveQuotationPdf(supabase, data.id, fd);
+  const fileError = await saveQuotationFile(supabase, data.id, fd, false);
+  revalidatePath("/quotations");
   redirect(
     `/quotations/${data.id}` +
-      (fileError ? "?error=" + encodeURIComponent("Quotation saved, but PDF file was not: " + fileError) : ""),
+      (fileError ? "?error=" + encodeURIComponent("Quotation saved, but quotation file was not: " + fileError) : ""),
   );
 }
 
@@ -94,14 +169,14 @@ export async function updateQuotation(id: string, fd: FormData) {
     .eq("id", id)
     .maybeSingle();
 
-  let approvalPatch: { approved_by?: string | null; approved_at?: string | null } = {};
+  let approvalPatch: { approved_by?: string | null; approved_at?: string | null; superseded_by?: string | null } = {};
   if (status && ["approved", "sent", "accepted"].includes(status) && !existing?.approved_at) {
     if (!person || !person.roles.includes("management")) {
-      redirect(`/quotations/${id}?error=` + encodeURIComponent("Only management can approve a quotation (R10)."));
+      redirect(`/quotations/${id}?error=` + encodeURIComponent("Only management can approve or send a quotation."));
     }
     approvalPatch = { approved_by: person.id, approved_at: new Date().toISOString() };
   } else if (status === "draft") {
-    approvalPatch = { approved_by: null, approved_at: null };
+    approvalPatch = { approved_by: null, approved_at: null, superseded_by: null };
   }
 
   const { error } = await supabase
@@ -114,13 +189,16 @@ export async function updateQuotation(id: string, fd: FormData) {
     .eq("id", id);
 
   if (error) redirect(`/quotations/${id}?error=` + encodeURIComponent(friendlyError(error.message)));
-  const fileError = await saveQuotationPdf(supabase, id, fd);
+  const fileError = await saveQuotationFile(supabase, id, fd, false);
   revalidatePath(`/quotations/${id}`);
   revalidatePath("/quotations");
-  redirect(`/quotations/${id}` + (fileError ? "?error=" + encodeURIComponent("PDF file not saved: " + fileError) : "?saved=1"));
+  redirect(
+    `/quotations/${id}` +
+      (fileError ? "?error=" + encodeURIComponent("Quotation file not saved: " + fileError) : "?saved=1"),
+  );
 }
 
-// R10: Only Anand Teertha or S. Radhakrishnan (management role) can approve and send a quotation.
+// R10: Management approval helper.
 export async function approveQuotation(id: string) {
   const { supabase, person } = await requireStaff();
   if (!person || !person.roles.includes("management")) {
@@ -141,10 +219,131 @@ export async function approveQuotation(id: string) {
   redirect(`/quotations/${id}?saved=approved`);
 }
 
+// T30: Records that BITA has sent the quotation to the customer (draft -> sent).
+export async function markQuotationSent(id: string) {
+  const { supabase, person } = await requireStaff();
+  const { data: existing } = await supabase
+    .from("quotations")
+    .select("approved_at, approved_by, enquiry_id")
+    .eq("id", id)
+    .maybeSingle();
+
+  let approvalPatch: { approved_by?: string; approved_at?: string } = {};
+  if (!existing?.approved_at) {
+    if (!person || !person.roles.includes("management")) {
+      redirect(`/quotations/${id}?error=` + encodeURIComponent("Only management can mark a quotation as sent."));
+    }
+    approvalPatch = {
+      approved_by: person.id,
+      approved_at: new Date().toISOString(),
+    };
+  }
+
+  const { error } = await supabase
+    .from("quotations")
+    .update({
+      status: "sent",
+      superseded_by: null,
+      ...approvalPatch,
+    })
+    .eq("id", id);
+
+  if (error) redirect(`/quotations/${id}?error=` + encodeURIComponent(friendlyError(error.message)));
+
+  if (existing?.enquiry_id) {
+    await supabase
+      .from("enquiries")
+      .update({ status: "quoted" })
+      .eq("id", existing.enquiry_id)
+      .neq("status", "converted");
+    revalidatePath(`/enquiries/${existing.enquiry_id}`);
+    revalidatePath("/enquiries");
+  }
+
+  revalidatePath(`/quotations/${id}`);
+  revalidatePath("/quotations");
+  redirect(`/quotations/${id}?saved=sent`);
+}
+
+// T30: Records that the customer accepted the quotation (sent -> accepted).
+export async function acceptQuotation(id: string) {
+  const { supabase, person } = await requireStaff();
+  const { data: existing } = await supabase
+    .from("quotations")
+    .select("approved_at, approved_by")
+    .eq("id", id)
+    .maybeSingle();
+
+  let approvalPatch: { approved_by?: string; approved_at?: string } = {};
+  if (!existing?.approved_at) {
+    if (!person || !person.roles.includes("management")) {
+      redirect(`/quotations/${id}?error=` + encodeURIComponent("Only management can mark a quotation as accepted."));
+    }
+    approvalPatch = {
+      approved_by: person.id,
+      approved_at: new Date().toISOString(),
+    };
+  }
+
+  const { error } = await supabase
+    .from("quotations")
+    .update({
+      status: "accepted",
+      superseded_by: null,
+      ...approvalPatch,
+    })
+    .eq("id", id);
+
+  if (error) redirect(`/quotations/${id}?error=` + encodeURIComponent(friendlyError(error.message)));
+  revalidatePath(`/quotations/${id}`);
+  revalidatePath("/quotations");
+  redirect(`/quotations/${id}?saved=accepted`);
+}
+
+// T30: Records that the customer rejected the quotation (stored as status='superseded' with superseded_by=null).
+export async function rejectQuotation(id: string) {
+  const { supabase } = await requireStaff();
+  const { error } = await supabase
+    .from("quotations")
+    .update({
+      status: "superseded",
+      superseded_by: null,
+    })
+    .eq("id", id);
+
+  if (error) redirect(`/quotations/${id}?error=` + encodeURIComponent(friendlyError(error.message)));
+  revalidatePath(`/quotations/${id}`);
+  revalidatePath("/quotations");
+  redirect(`/quotations/${id}?saved=rejected`);
+}
+
+export async function reopenQuotationDraft(id: string) {
+  const { supabase } = await requireStaff();
+  const { error } = await supabase
+    .from("quotations")
+    .update({
+      status: "draft",
+      approved_by: null,
+      approved_at: null,
+      superseded_by: null,
+    })
+    .eq("id", id);
+
+  if (error) redirect(`/quotations/${id}?error=` + encodeURIComponent(friendlyError(error.message)));
+  revalidatePath(`/quotations/${id}`);
+  revalidatePath("/quotations");
+  redirect(`/quotations/${id}?saved=draft`);
+}
+
 export async function setQuotationStatus(id: string, fd: FormData) {
   const { supabase, person } = await requireStaff();
   const statusRaw = text(fd, "status");
-  if (!statusRaw || !(Constants.public.Enums.quotation_status as readonly string[]).includes(statusRaw)) {
+  if (!statusRaw) redirect(`/quotations/${id}`);
+
+  if (statusRaw === "rejected") {
+    return rejectQuotation(id);
+  }
+  if (!(Constants.public.Enums.quotation_status as readonly string[]).includes(statusRaw)) {
     redirect(`/quotations/${id}`);
   }
   const status = statusRaw as Enums<"quotation_status">;
@@ -155,14 +354,14 @@ export async function setQuotationStatus(id: string, fd: FormData) {
     .eq("id", id)
     .maybeSingle();
 
-  let approvalPatch: { approved_by?: string | null; approved_at?: string | null } = {};
+  let approvalPatch: { approved_by?: string | null; approved_at?: string | null; superseded_by?: string | null } = {};
   if (["approved", "sent", "accepted"].includes(status) && !existing?.approved_at) {
     if (!person || !person.roles.includes("management")) {
       redirect(`/quotations/${id}?error=` + encodeURIComponent("Only management can approve a quotation (R10)."));
     }
     approvalPatch = { approved_by: person.id, approved_at: new Date().toISOString() };
   } else if (status === "draft") {
-    approvalPatch = { approved_by: null, approved_at: null };
+    approvalPatch = { approved_by: null, approved_at: null, superseded_by: null };
   }
 
   const { error } = await supabase
@@ -247,6 +446,7 @@ export async function addQuotationItem(quotationId: string, fd: FormData) {
   });
   if (error) redirect(`/quotations/${quotationId}?error=` + encodeURIComponent(friendlyError(error.message)));
   revalidatePath(`/quotations/${quotationId}`);
+  revalidatePath("/quotations");
   redirect(`/quotations/${quotationId}?saved=item`);
 }
 
@@ -270,6 +470,7 @@ export async function updateQuotationItem(quotationId: string, itemId: string, f
     .eq("quotation_id", quotationId);
   if (error) redirect(`/quotations/${quotationId}?error=` + encodeURIComponent(friendlyError(error.message)));
   revalidatePath(`/quotations/${quotationId}`);
+  revalidatePath("/quotations");
   redirect(`/quotations/${quotationId}?saved=item`);
 }
 
@@ -282,5 +483,6 @@ export async function deleteQuotationItem(quotationId: string, itemId: string) {
     .eq("quotation_id", quotationId);
   if (error) redirect(`/quotations/${quotationId}?error=` + encodeURIComponent(friendlyError(error.message)));
   revalidatePath(`/quotations/${quotationId}`);
+  revalidatePath("/quotations");
   redirect(`/quotations/${quotationId}?saved=item`);
 }

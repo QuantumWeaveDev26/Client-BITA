@@ -1,5 +1,5 @@
 import { Button, Field, Input, Select, Textarea } from "@/components/ui";
-import { Constants, type Tables } from "@/lib/db/types";
+import { Constants, type Enums, type Tables } from "@/lib/db/types";
 import { JOB_STATUS_LABEL, METHOD_LABEL } from "./labels";
 
 type Option = { id: string; label: string };
@@ -19,10 +19,17 @@ export function JobForm({
   customers: Option[];
   enquiries: Option[];
   quotations: Option[];
-  defaults?: { customer_id?: string; enquiry_id?: string; scope?: string };
+  defaults?: {
+    customer_id?: string;
+    enquiry_id?: string;
+    quotation_id?: string;
+    scope?: string;
+    site?: string;
+    test_methods?: Enums<"test_method">[];
+  };
   submitLabel: string;
 }) {
-  const methods = new Set(job?.test_methods ?? []);
+  const methods = new Set(job?.test_methods ?? defaults?.test_methods ?? []);
   return (
     <form action={action} className="space-y-4">
       <Field label="Customer">
@@ -49,7 +56,7 @@ export function JobForm({
           </Select>
         </Field>
         <Field label="Quotation" hint="An approved quotation can be reused for repeat work">
-          <Select name="quotation_id" defaultValue={job?.quotation_id ?? ""}>
+          <Select name="quotation_id" defaultValue={job?.quotation_id ?? defaults?.quotation_id ?? ""}>
             <option value="">None yet</option>
             {quotations.map((q) => (
               <option key={q.id} value={q.id}>
@@ -60,21 +67,35 @@ export function JobForm({
         </Field>
       </div>
       <Field label="Scope of work">
-        <Textarea name="scope" defaultValue={job?.scope ?? defaults?.scope ?? ""} placeholder="Components, quantity, standard…" />
+        <Textarea
+          name="scope"
+          defaultValue={job?.scope ?? defaults?.scope ?? ""}
+          placeholder="Components, quantity, standard…"
+        />
       </Field>
       <fieldset>
         <legend className="text-sm font-medium text-ink-2">Test methods</legend>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {Constants.public.Enums.test_method.map((m) => (
             <label key={m} className="flex items-center gap-2 text-sm">
-              <input type="checkbox" name="test_methods" value={m} defaultChecked={methods.has(m)} className="h-4 w-4" />
+              <input
+                type="checkbox"
+                name="test_methods"
+                value={m}
+                defaultChecked={methods.has(m)}
+                className="h-4 w-4"
+              />
               {METHOD_LABEL[m]}
             </label>
           ))}
         </div>
       </fieldset>
       <Field label="Site">
-        <Input name="site" defaultValue={job?.site ?? ""} placeholder="Customer works, or site address" />
+        <Input
+          name="site"
+          defaultValue={job?.site ?? defaults?.site ?? ""}
+          placeholder="Customer works, or site address"
+        />
       </Field>
       <div className="grid gap-4 sm:grid-cols-2">
         <Field label="PO number" hint="Not needed before work starts; add it when the PO arrives">

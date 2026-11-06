@@ -76,7 +76,7 @@ export default async function NewQuotationPage({
     <>
       <PageHeader
         title="New quotation"
-        subtitle="BITA has no fixed rate list (R9) and quotations have no expiry date (R11). Management approves before sending (R10)."
+        subtitle="Upload the quotation prepared by BITA (PDF or Word, up to 6 MB) and enter the quoted items, rates and total."
       />
       <ErrorNote message={error} />
 
