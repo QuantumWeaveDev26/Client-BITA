@@ -1,0 +1,66 @@
+"use server";
+
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth";
+import { Constants, type Enums } from "@/lib/db/types";
+import { friendlyError, text } from "@/lib/forms";
+
+type Supabase = Awaited<ReturnType<typeof requireUser>>["supabase"];
+
+function jobFields(fd: FormData) {
+  const methods = fd
+    .getAll("test_methods")
+    .map(String)
+    .filter((m): m is Enums<"test_method"> => (Constants.public.Enums.test_method as readonly string[]).includes(m));
+  return {
+    customer_id: text(fd, "customer_id") ?? "",
+    enquiry_id: text(fd, "enquiry_id"),
+    quotation_id: text(fd, "quotation_id"),
+    site: text(fd, "site"),
+    scope: text(fd, "scope"),
+    test_methods: methods,
+    po_number: text(fd, "po_number"),
+    po_date: text(fd, "po_date"),
+  };
+}
+
+// Stores the PO file in the private documents bucket and records its path on the job.
+async function savePoFile(supabase: Supabase, jobId: string, fd: FormData): Promise<string | null> {
+  const file = fd.get("po_file");
+  if (!(file instanceof File) || file.size === 0) return null;
+  const path = `po/${jobId}/${Date.now()}-${file.name.replace(/[^\w.-]+/g, "_")}`;
+  const { error } = await supabase.storage.from("documents").upload(path, file, { contentType: file.type });
+  if (error) return error.message;
+  const { error: updateError } = await supabase.from("jobs").update({ po_path: path }).eq("id", jobId);
+  return updateError?.message ?? null;
+}
+
+export async function createJob(fd: FormData) {
+  const { supabase } = await requireUser();
+  const fields = jobFields(fd);
+  const { data, error } = await supabase.from("jobs").insert(fields).select("id").single();
+  if (error) redirect("/jobs/new?error=" + encodeURIComponent(friendlyError(error.message)));
+
+  if (fields.enquiry_id) {
+    await supabase.from("enquiries").update({ status: "converted" }).eq("id", fields.enquiry_id);
+  }
+  const fileError = await savePoFile(supabase, data.id, fd);
+  redirect(`/jobs/${data.id}` + (fileError ? "?error=" + encodeURIComponent("Job saved, but the PO file was not: " + fileError) : ""));
+}
+
+export async function updateJob(id: string, fd: FormData) {
+  const { supabase } = await requireUser();
+  const status = text(fd, "status") as Enums<"job_status"> | null;
+  const { error } = await supabase
+    .from("jobs")
+    .update({
+      ...jobFields(fd),
+      ...(status ? { status, closed_at: status === "closed" ? new Date().toISOString() : null } : {}),
+    })
+    .eq("id", id);
+  if (error) redirect(`/jobs/${id}?error=` + encodeURIComponent(friendlyError(error.message)));
+  const fileError = await savePoFile(supabase, id, fd);
+  revalidatePath(`/jobs/${id}`);
+  redirect(`/jobs/${id}` + (fileError ? "?error=" + encodeURIComponent("PO file not saved: " + fileError) : "?saved=1"));
+}
