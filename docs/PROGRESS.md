@@ -20,7 +20,7 @@ Everyone adds a log entry at the end of every session (newest at the top of the 
 | WhatsApp intake + technician messages (R3, X1) | Naveen | Not started | | Needs BITA's WhatsApp Business number |
 | Financial reports from Zoho (X4) | Naveen | Not started | | Needs Zoho access |
 | Submission checks + correction history view (X2, X3) | Naveen | Not started | | Database side done in setup PR |
-| Qualification + equipment registers (R19–R20, R29–R31) | Naveen | In progress | feature/naveen-registers | People, qualifications, equipment and private certificate copies implemented; verification in progress |
+| Qualification + equipment registers (R19–R20, R29–R31) | Naveen | In review | feature/naveen-registers | Registers and private certificates built; 36 tests, lint, typecheck, build and 375 px fixture checks pass; shared upload/access integration pending Orion |
 | Glossary | Krishna | Not started | | |
 | Test data | Krishna | Not started | | |
 | Client inputs tracker | Krishna | Not started | | See `docs/CLIENT_INPUTS.md` |
@@ -66,6 +66,13 @@ Files changed: <main files or folders>
 Next: <the next concrete step>
 Blockers / questions: <or "none">
 ```
+
+### 2026-11-06 11:00 – Naveen – Codex
+Task: T4 qualification and equipment registers
+Done: Verified management-only saves, RLS-denied updates, certificate directory isolation and partial-upload errors. All 36 tests, lint, type check and production build pass. Six fake-data register lists/forms checked in Chromium at 375 px and 1280 px with no overflow; screenshots inspected. Removed outdated technician job-link wording.
+Files changed: app/(office)/registers/, docs/PROGRESS.md, docs/HANDOFF.md
+Next: Review stacked PR; integrate Orion's shared upload limit and staff-only access helpers before the technician-login rollout. Live authenticated certificate upload still needs a click-through.
+Blockers / questions: Shared next.config.ts upload limit remains 1 MB until Orion raises it; 5 MB files need the requested 6 MB body limit. No shared application files, schema or dependencies changed.
 
 ### 2026-11-06 10:53 – Naveen – Codex
 Task: T4 qualification and equipment registers

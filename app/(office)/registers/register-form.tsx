@@ -41,7 +41,7 @@ function PersonFields({ person }: { person?: Person }) {
     <fieldset className="space-y-2 rounded-md border border-neutral-200 p-3">
       <legend className="px-1 text-sm font-medium">Roles</legend>
       {ROLES.map((role) => <Checkbox key={role} name="roles" value={role} label={role.charAt(0).toUpperCase() + role.slice(1)} defaultChecked={person?.roles.includes(role)} />)}
-      <p className="text-xs text-neutral-500">Roles control access for linked staff logins. Adding a person does not create a login; technicians use job links.</p>
+      <p className="text-xs text-neutral-500">Roles control access for linked logins. Adding a person does not create or link a login.</p>
     </fieldset>
     <Checkbox name="active" label="Active person" defaultChecked={person?.active ?? true} />
   </>;
