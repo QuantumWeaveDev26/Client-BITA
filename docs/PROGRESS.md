@@ -81,7 +81,6 @@ Files changed: lib/reports/fields.ts, lib/reports/fields.test.ts, docs/PROGRESS.
 Next: Finish source-format paper templates, approval-gated signature slots, staff-only fake-data preview and A4 print checks.
 Blockers / questions: none for the field contract.
 
-||||||| 9d61f53
 ### 2026-11-06 11:06 – Naveen – Codex
 Task: T4 qualification and equipment registers, PR 6
 Done: Certificate uploads now use a separate management-only route with origin checks and a bounded 5 MB multipart body, so they do not depend on the shared server-action limit. Save details first, then attach a certificate; previous copies remain linked if upload fails. All 44 tests and production build pass; eight fake-data screens checked at 375/1280 px without overflow.

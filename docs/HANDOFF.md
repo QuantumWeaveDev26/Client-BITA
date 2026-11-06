@@ -131,7 +131,6 @@ Decisions made in this session: none
 
 
 
-||||||| 9d61f53
 ### 2026-11-06 11:06 – Naveen – registers – from Codex to review
 Branch: feature/naveen-registers (PR 6, stacked on feature/naveen-login-customers-enquiries)
 Task: T4 qualification and equipment registers
