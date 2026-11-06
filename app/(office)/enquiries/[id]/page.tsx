@@ -45,13 +45,13 @@ export default async function EnquiryPage({
       <div className="mb-4 flex flex-wrap gap-2">
         <Badge>{SOURCE_LABEL[enquiry.source]}</Badge>
         <Badge>{STATUS_LABEL[enquiry.status]}</Badge>
-        <span className="text-xs text-neutral-500">{formatIST(enquiry.received_at)}</span>
+        <span className="text-xs text-ink-3">{formatIST(enquiry.received_at)}</span>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
           <h2 className="mb-2 font-semibold">Message</h2>
-          <p className="text-sm text-neutral-600">
+          <p className="text-sm text-ink-2">
             From: {[enquiry.from_name, enquiry.from_address].filter(Boolean).join(" · ") || "not given"}
           </p>
           <p className="mt-3 whitespace-pre-wrap text-sm">{enquiry.body || "No details."}</p>
@@ -63,16 +63,16 @@ export default async function EnquiryPage({
             {enquiry.customers && (
               <p className="mb-3 text-sm">
                 Linked to{" "}
-                <Link href={`/customers/${enquiry.customers.id}`} className="font-medium text-red-700 underline">
+                <Link href={`/customers/${enquiry.customers.id}`} className="font-medium text-ink underline">
                   {enquiry.customers.name}
                 </Link>
               </p>
             )}
             {suggested && (
-              <form action={linkCustomer.bind(null, id)} className="mb-3 rounded-md bg-amber-50 p-3 text-sm">
+              <form action={linkCustomer.bind(null, id)} className="mb-3 rounded-lg border border-wait/30 bg-wait/5 p-3 text-[13.5px]">
                 <input type="hidden" name="customer_id" value={suggested.id} />
                 Sender matches a contact of <strong>{suggested.name}</strong>.{" "}
-                <button className="font-semibold text-red-700 underline">Link to this customer</button>
+                <button className="font-semibold text-ink underline">Link to this customer</button>
               </form>
             )}
             <form action={linkCustomer.bind(null, id)} className="space-y-3">

@@ -1,17 +1,33 @@
 @import "tailwindcss";
 
+/* BITA visual system (DESIGN.md): clean black and white, colour only for status. */
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0a0a0a;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --font-sans: var(--font-geist), system-ui, "Segoe UI", sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, Consolas, monospace;
+
+  --color-ink: #0a0a0a;
+  --color-ink-2: #4d4d4d;
+  --color-ink-3: #8f8f8f;
+  --color-line: #ebebeb;
+  --color-line-2: #f2f2f2;
+  --color-side: #fafafa;
+  --color-ok: #16a34a;
+  --color-wait: #d97706;
+  --color-bad: #dc2626;
+  --color-info: #2563eb;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: system-ui, "Segoe UI", Roboto, Arial, sans-serif;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
 }
