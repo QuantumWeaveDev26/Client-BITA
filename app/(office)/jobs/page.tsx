@@ -35,13 +35,13 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
             </option>
           ))}
         </Select>
-        <button className="rounded-md border border-neutral-300 px-4 py-2 text-sm font-semibold hover:bg-neutral-100">Filter</button>
+        <button className="rounded-md border border-line px-4 py-2 text-sm font-semibold hover:bg-side">Filter</button>
       </form>
-      {error && <p className="text-sm text-red-700">{error.message}</p>}
-      <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white">
+      {error && <p className="text-sm text-ink">{error.message}</p>}
+      <ul className="divide-y divide-line rounded-xl border border-line bg-white">
         {jobs?.map((j) => (
           <li key={j.id}>
-            <Link href={`/jobs/${j.id}`} className="block px-4 py-3 hover:bg-neutral-50">
+            <Link href={`/jobs/${j.id}`} className="block px-4 py-3 hover:bg-side">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-mono text-sm font-semibold">{j.job_no}</span>
                 <Badge>{JOB_STATUS_LABEL[j.status]}</Badge>
@@ -50,13 +50,13 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
                 ))}
               </div>
               <div className="mt-1 text-sm">{j.customers?.name}</div>
-              <div className="text-xs text-neutral-500">
+              <div className="text-xs text-ink-3">
                 {[j.scope, j.site, j.po_number ? `PO ${j.po_number}` : "No PO yet"].filter(Boolean).join(" · ")}
               </div>
             </Link>
           </li>
         ))}
-        {jobs?.length === 0 && <li className="px-4 py-6 text-sm text-neutral-500">No jobs found.</li>}
+        {jobs?.length === 0 && <li className="px-4 py-6 text-sm text-ink-3">No jobs found.</li>}
       </ul>
     </>
   );

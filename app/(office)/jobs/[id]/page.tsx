@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge, Card, ErrorNote, PageHeader } from "@/components/ui";
+import { Badge, ButtonLink, Card, ErrorNote, PageHeader, SavedNote } from "@/components/ui";
 import { requireStaff } from "@/lib/auth";
 import { formatIST } from "../../enquiries/labels";
 import { updateJob } from "../actions";
@@ -48,7 +48,7 @@ export default async function JobPage({
     <>
       <PageHeader title={job.job_no} />
       <ErrorNote message={error} />
-      {saved && <p className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">Saved.</p>}
+      {saved && <SavedNote />}
       <div className="mb-4 flex flex-wrap gap-2">
         <Badge>{JOB_STATUS_LABEL[job.status]}</Badge>
         {job.test_methods.map((m) => (
@@ -62,10 +62,10 @@ export default async function JobPage({
             <h2 className="mb-2 font-semibold">Customer</h2>
             {customer.data && (
               <>
-                <Link href={`/customers/${customer.data.id}`} className="font-medium text-red-700 underline">
+                <Link href={`/customers/${customer.data.id}`} className="font-medium text-ink underline">
                   {customer.data.name}
                 </Link>
-                <p className="mt-1 text-sm text-neutral-600">
+                <p className="mt-1 text-sm text-ink-2">
                   {[customer.data.gstin, customer.data.uses_proforma ? "Proforma first" : null, `${customer.data.payment_terms_days} days`]
                     .filter(Boolean)
                     .join(" · ")}
@@ -74,7 +74,7 @@ export default async function JobPage({
                   {contacts.data?.map((c) => (
                     <li key={c.name}>
                       {c.name}
-                      <span className="text-xs text-neutral-500">
+                      <span className="text-xs text-ink-3">
                         {" "}
                         {[c.mobile, c.email].filter(Boolean).join(" · ")}
                         {c.receives_reports ? " · reports" : ""}
@@ -91,10 +91,10 @@ export default async function JobPage({
             <h2 className="mb-2 font-semibold">Enquiry, quotation and PO</h2>
             <dl className="space-y-2 text-sm">
               <div>
-                <dt className="text-neutral-500">Enquiry</dt>
+                <dt className="text-ink-3">Enquiry</dt>
                 <dd>
                   {enquiry?.data ? (
-                    <Link href={`/enquiries/${enquiry.data.id}`} className="text-red-700 underline">
+                    <Link href={`/enquiries/${enquiry.data.id}`} className="text-ink underline">
                       {enquiry.data.subject ?? "(no subject)"}
                     </Link>
                   ) : (
@@ -103,12 +103,12 @@ export default async function JobPage({
                 </dd>
               </div>
               <div>
-                <dt className="text-neutral-500">Quotation</dt>
+                <dt className="text-ink-3">Quotation</dt>
                 <dd>
                   {quotation?.data ? (
                     <>
                       {quotation.data.ref_no ?? "Draft"} ({quotation.data.status})
-                      <ul className="mt-1 list-disc pl-5 text-xs text-neutral-600">
+                      <ul className="mt-1 list-disc pl-5 text-xs text-ink-2">
                         {quotation.data.quotation_items.map((it, n) => (
                           <li key={n}>
                             {it.description}: {formatINR(it.rate)} {it.basis ?? ""}
@@ -123,14 +123,14 @@ export default async function JobPage({
                 </dd>
               </div>
               <div>
-                <dt className="text-neutral-500">PO</dt>
+                <dt className="text-ink-3">PO</dt>
                 <dd>
                   {job.po_number ?? "Not received yet"}
                   {job.po_date && ` · ${job.po_date}`}
                   {poUrl && (
                     <>
                       {" · "}
-                      <a href={poUrl} target="_blank" rel="noreferrer" className="text-red-700 underline">
+                      <a href={poUrl} target="_blank" rel="noreferrer" className="text-ink underline">
                         Open PO file
                       </a>
                     </>
@@ -141,17 +141,22 @@ export default async function JobPage({
           </Card>
 
           <Card>
-            <h2 className="mb-2 font-semibold">Technicians and inspections</h2>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="font-semibold">Technicians and inspections</h2>
+              <ButtonLink href={`/jobs/${job.id}/assign`} variant="secondary" size="sm">
+                Assign technician
+              </ButtonLink>
+            </div>
             <ul className="space-y-1 text-sm">
               {assignments.data?.map((a) => (
                 <li key={a.id}>
                   {a.work_date}: {a.people?.full_name}
-                  <span className="text-xs text-neutral-500">
+                  <span className="text-xs text-ink-3">
                     {a.completed_at ? " · completed" : a.acknowledged_at ? " · acknowledged" : " · not acknowledged"}
                   </span>
                 </li>
               ))}
-              {assignments.data?.length === 0 && <li className="text-neutral-500">No technician assigned yet.</li>}
+              {assignments.data?.length === 0 && <li className="text-ink-3">No technician assigned yet.</li>}
             </ul>
             <ul className="mt-3 space-y-1 text-sm">
               {inspections.data?.map((i) => (
@@ -159,7 +164,7 @@ export default async function JobPage({
                   {METHOD_LABEL[i.method]} field data:{" "}
                   {i.submitted_at ? `submitted ${formatIST(i.submitted_at)}` : "not submitted"}
                   {i.missing_fields.length > 0 && (
-                    <span className="text-red-700"> · missing {i.missing_fields.join(", ")}</span>
+                    <span className="text-ink"> · missing {i.missing_fields.join(", ")}</span>
                   )}
                 </li>
               ))}
@@ -172,10 +177,10 @@ export default async function JobPage({
               {reports.data?.map((r) => (
                 <li key={r.id}>
                   {r.report_no} · {METHOD_LABEL[r.method]} · {r.status}
-                  {r.sent_at && <span className="text-xs text-neutral-500"> · sent {formatIST(r.sent_at)}</span>}
+                  {r.sent_at && <span className="text-xs text-ink-3"> · sent {formatIST(r.sent_at)}</span>}
                 </li>
               ))}
-              {reports.data?.length === 0 && <li className="text-neutral-500">No reports yet.</li>}
+              {reports.data?.length === 0 && <li className="text-ink-3">No reports yet.</li>}
             </ul>
             {attachments.data && attachments.data.length > 0 && (
               <>
@@ -183,7 +188,7 @@ export default async function JobPage({
                 <ul className="space-y-1 text-sm">
                   {attachments.data.map((a) => (
                     <li key={a.id}>
-                      {a.caption ?? a.storage_path.split("/").pop()} <span className="text-xs text-neutral-500">({a.kind})</span>
+                      {a.caption ?? a.storage_path.split("/").pop()} <span className="text-xs text-ink-3">({a.kind})</span>
                     </li>
                   ))}
                 </ul>
@@ -193,7 +198,7 @@ export default async function JobPage({
 
           <Card>
             <h2 className="mb-2 font-semibold">Invoices and payments</h2>
-            <p className="mb-2 text-xs text-neutral-500">From Zoho Books.</p>
+            <p className="mb-2 text-xs text-ink-3">From Zoho Books.</p>
             <ul className="space-y-1 text-sm">
               {invoices.data?.map((i) => (
                 <li key={i.id}>
@@ -201,7 +206,7 @@ export default async function JobPage({
                   {formatINR(i.balance)} · {i.status ?? ""}
                 </li>
               ))}
-              {invoices.data?.length === 0 && <li className="text-neutral-500">No invoices yet.</li>}
+              {invoices.data?.length === 0 && <li className="text-ink-3">No invoices yet.</li>}
             </ul>
             {invoices.data && invoices.data.length > 0 && (
               <p className="mt-2 text-sm font-semibold">Outstanding: {formatINR(outstanding)}</p>

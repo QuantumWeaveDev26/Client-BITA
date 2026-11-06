@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
+import { requireUser } from "@/lib/auth";
+import { homeFor } from "@/lib/roles";
 
-// The office layout sends anyone not logged in to /login.
-export default function Home() {
-  redirect("/enquiries");
+// Every login lands on its own home screen (management, office, reviewer, technician).
+export default async function Home() {
+  const { person } = await requireUser();
+  redirect(person ? homeFor(person.roles) : "/dashboard");
 }

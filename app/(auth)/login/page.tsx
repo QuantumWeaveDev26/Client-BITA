@@ -7,7 +7,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
   const { error } = await searchParams;
   return (
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4 py-12">
-      <p className="text-xs font-semibold uppercase tracking-wide text-red-700">Bangalore Inspection &amp; Testing Agency</p>
+      <p className="text-xs font-semibold uppercase tracking-wide text-ink">Bangalore Inspection &amp; Testing Agency</p>
       <h1 className="mb-6 text-2xl font-bold">Business Management System</h1>
       <ErrorNote message={error ? "Email or password is not correct." : undefined} />
       <form action={signIn} className="space-y-4">
