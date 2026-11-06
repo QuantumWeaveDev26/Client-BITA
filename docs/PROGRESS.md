@@ -12,7 +12,7 @@ Everyone adds a log entry at the end of every session (newest at the top of the 
 | Customer and enquiry screens | Naveen | In review | feature/naveen-login-customers-enquiries | Login, customers with contacts, enquiries with customer link |
 | Jobs, quotations, POs, scheduling | Naveen | Not started | | |
 | Technician field form | Naveen | Not started | | |
-| Report templates + approval + PDF | Naveen | Not started | | Needs BITA samples |
+| Report templates + approval + PDF | Naveen | In progress | feature/naveen-report-templates | T8a typed fields and mandatory-reading validation ready; paper templates and staff preview in progress |
 | AI report drafting | Naveen | Not started | | |
 | Zoho Books integration | Naveen | Not started | | Needs Zoho admin access |
 | Payments, reminders, job closure | Naveen | Not started | | |
@@ -66,6 +66,13 @@ Files changed: <main files or folders>
 Next: <the next concrete step>
 Blockers / questions: <or "none">
 ```
+
+### 2026-11-06 11:48 – Naveen – Codex
+Task: T8a report field definitions and paper layouts
+Done: Added typed UT/MPT/DPT readings, MT alias, shared fields and repeated technician/item groups. missingFields returns stable scalar/dotted paths for inspections.missing_fields and validates every row. Eleven field tests pass. Orion approved the contract; pushing it early for T7.
+Files changed: lib/reports/fields.ts, lib/reports/fields.test.ts, docs/PROGRESS.md, docs/HANDOFF.md
+Next: Finish source-format paper templates, approval-gated signature slots, staff-only fake-data preview and A4 print checks.
+Blockers / questions: none for the field contract.
 
 ### 2026-11-05 18:30 – Naveen – Claude Code
 Task: BITA: Customer and enquiry screens

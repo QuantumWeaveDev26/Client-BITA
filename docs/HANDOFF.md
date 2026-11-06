@@ -107,6 +107,18 @@ Decisions made in this session: <or "none">
 
 ## Handoff entries (newest first)
 
+### 2026-11-06 11:48 – Naveen – report fields – from Codex to T7 integration
+Branch: feature/naveen-report-templates (base feature/naveen-technician-access)
+Task: T8a report fields and paper templates
+Stopped at: Typed field contract and missingFields implemented with eleven tests. Templates/preview are being completed in the same branch.
+Next step: T7 imports fieldsForMethod, REPEATING_GROUPS, ReportReadings and missingFields; finish paper template rendering and visual verification.
+Files touched: lib/reports/, docs/PROGRESS.md, docs/HANDOFF.md
+How to run / test: npm test; lib/reports/fields.test.ts.
+Known problems: missingFields checks presence only; compute it on the server when persisting inspections. Templates and preview not yet ready for review.
+Decisions made in this session: none
+
+
+
 ### 2026-11-05 17:30 – Naveen – whole app – from Claude Code to Naveen's next session
 Branch: feature/naveen-db-types   (pushed: yes, PR 2)
 Task: BITA: Set up repository, database and team access
