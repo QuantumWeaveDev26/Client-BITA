@@ -59,3 +59,8 @@ supabase/.branches/
 
 # October desktop — local canvas state
 .october/
+
+# October (generated — context bus / browser MCP)
+.codex/config.toml
+.codex/hooks.json
+.agents/mcp_config.json
