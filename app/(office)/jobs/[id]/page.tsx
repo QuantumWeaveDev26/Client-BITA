@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge, Card, ErrorNote, PageHeader, SavedNote } from "@/components/ui";
+import { Badge, ButtonLink, Card, ErrorNote, PageHeader, SavedNote } from "@/components/ui";
 import { requireStaff } from "@/lib/auth";
 import { formatIST } from "../../enquiries/labels";
 import { updateJob } from "../actions";
@@ -141,7 +141,12 @@ export default async function JobPage({
           </Card>
 
           <Card>
-            <h2 className="mb-2 font-semibold">Technicians and inspections</h2>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="font-semibold">Technicians and inspections</h2>
+              <ButtonLink href={`/jobs/${job.id}/assign`} variant="secondary" size="sm">
+                Assign technician
+              </ButtonLink>
+            </div>
             <ul className="space-y-1 text-sm">
               {assignments.data?.map((a) => (
                 <li key={a.id}>
