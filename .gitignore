@@ -56,3 +56,13 @@ supabase/.branches/
 
 # local tool settings
 /.claude/
+||||||| 2b29427
+
+
+# October desktop — local canvas state
+.october/
+
+# October (generated — context bus / browser MCP)
+.codex/config.toml
+.codex/hooks.json
+.agents/mcp_config.json
