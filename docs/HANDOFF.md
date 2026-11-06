@@ -107,6 +107,18 @@ Decisions made in this session: <or "none">
 
 ## Handoff entries (newest first)
 
+### 2026-11-06 10:53 – Naveen – registers – from Codex to next session
+Branch: feature/naveen-registers (push at step end)
+Task: T4 qualification and equipment registers
+Stopped at: Register list, new/detail forms, management-only actions and private certificate download route implemented. Type check and 21 tests pass.
+Next step: Finish lint/build, permission tests and phone layout check; incorporate Orion's 6 MB server-action limit from T1 branch; open stacked PR.
+Files touched: app/(office)/registers/, docs/PROGRESS.md, docs/HANDOFF.md
+How to run / test: npm test; npm run lint; npm run typecheck; npm run build; dev port 3002, /registers.
+Known problems: Shared upload limit change requested from Orion; actual logged-in upload still needs verification.
+Decisions made in this session: none
+
+
+
 ### 2026-11-05 17:30 – Naveen – whole app – from Claude Code to Naveen's next session
 Branch: feature/naveen-db-types   (pushed: yes, PR 2)
 Task: BITA: Set up repository, database and team access

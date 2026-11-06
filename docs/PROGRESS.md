@@ -20,7 +20,7 @@ Everyone adds a log entry at the end of every session (newest at the top of the 
 | WhatsApp intake + technician messages (R3, X1) | Naveen | Not started | | Needs BITA's WhatsApp Business number |
 | Financial reports from Zoho (X4) | Naveen | Not started | | Needs Zoho access |
 | Submission checks + correction history view (X2, X3) | Naveen | Not started | | Database side done in setup PR |
-| Qualification + equipment registers (R19–R20, R29–R31) | Naveen | Not started | | |
+| Qualification + equipment registers (R19–R20, R29–R31) | Naveen | In progress | feature/naveen-registers | People, qualifications, equipment and private certificate copies implemented; verification in progress |
 | Glossary | Krishna | Not started | | |
 | Test data | Krishna | Not started | | |
 | Client inputs tracker | Krishna | Not started | | See `docs/CLIENT_INPUTS.md` |
@@ -66,6 +66,13 @@ Files changed: <main files or folders>
 Next: <the next concrete step>
 Blockers / questions: <or "none">
 ```
+
+### 2026-11-06 10:53 – Naveen – Codex
+Task: T4 qualification and equipment registers
+Done: Added searchable people, qualification and equipment registers; management-only save actions; private certificate uploads and authorized downloads; database qualification expiry flags and India-date calibration warnings. Type check and all 21 tests pass. No shared code, schema or dependencies changed.
+Files changed: app/(office)/registers/, docs/PROGRESS.md, docs/HANDOFF.md
+Next: Finish permission and phone-layout verification, then open a PR based on the login/customers/enquiries branch.
+Blockers / questions: Orion asked to raise the shared server-action body limit to 6 MB for 5 MB certificate uploads.
 
 ### 2026-11-05 18:30 – Naveen – Claude Code
 Task: BITA: Customer and enquiry screens
