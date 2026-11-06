@@ -1,0 +1,192 @@
+import Link from "next/link";
+import {
+  Badge,
+  ButtonLink,
+  EmptyRow,
+  ErrorNote,
+  Input,
+  List,
+  ListRow,
+  Mono,
+  PageHeader,
+  SecondaryButton,
+  SectionTitle,
+  Select,
+  type Tone,
+} from "@/components/ui";
+import { requireStaff } from "@/lib/auth";
+import { Constants, type Enums } from "@/lib/db/types";
+import { formatINR } from "../jobs/labels";
+import { formatDateIN, QUOTATION_STATUS_LABEL } from "./labels";
+
+export const metadata = { title: "Quotations – BITA" };
+
+const STATUS_TONE: Record<Enums<"quotation_status">, Tone> = {
+  draft: "wait",
+  approved: "info",
+  sent: "info",
+  accepted: "ok",
+  superseded: "none",
+};
+
+export default async function QuotationsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ q?: string; status?: string; rate?: string }>;
+}) {
+  const { q, status, rate } = await searchParams;
+  const { supabase } = await requireStaff();
+
+  let query = supabase
+    .from("quotations")
+    .select(
+      "id, ref_no, quote_date, subject, attention, status, approved_at, customers(name), quotation_items(id, description, basis, rate, minimum_charge)",
+    )
+    .order("quote_date", { ascending: false })
+    .limit(100);
+
+  if (status && (Constants.public.Enums.quotation_status as readonly string[]).includes(status)) {
+    query = query.eq("status", status as Enums<"quotation_status">);
+  }
+
+  // Commas and brackets have a meaning in the filter syntax, so they are dropped from the search text.
+  const term = q?.replace(/[,()%*]/g, " ").trim();
+  if (term) {
+    query = query.or(`ref_no.ilike.%${term}%,subject.ilike.%${term}%,attention.ilike.%${term}%`);
+  }
+
+  // R9: Previous quotations and their rates must be searchable for reference.
+  const rateTerm = (rate ?? q)?.replace(/[,()%*]/g, " ").trim();
+  let itemQuery = supabase
+    .from("quotation_items")
+    .select(
+      "id, description, basis, rate, minimum_charge, notes, quotations!inner(id, ref_no, quote_date, status, customers(name))",
+    )
+    .order("position", { ascending: true })
+    .limit(40);
+  if (rateTerm) {
+    itemQuery = itemQuery.or(`description.ilike.%${rateTerm}%,basis.ilike.%${rateTerm}%,notes.ilike.%${rateTerm}%`);
+  }
+
+  const [{ data: quotations, error }, { data: pastItems }] = await Promise.all([query, itemQuery]);
+
+  return (
+    <>
+      <PageHeader
+        title="Quotations"
+        subtitle="Customer quotations, past rates (R9) and management approval (R10)."
+        action={<ButtonLink href="/quotations/new">New quotation</ButtonLink>}
+      />
+
+      <form className="mb-5 grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto]">
+        <Input name="q" placeholder="Search Ref. No., subject or attention" defaultValue={q} />
+        <Input name="rate" placeholder="Search past item rates (component, method, basis)" defaultValue={rate} />
+        <Select name="status" defaultValue={status ?? ""}>
+          <option value="">All statuses</option>
+          {Constants.public.Enums.quotation_status.map((s) => (
+            <option key={s} value={s}>
+              {QUOTATION_STATUS_LABEL[s]}
+            </option>
+          ))}
+        </Select>
+        <SecondaryButton type="submit">Filter</SecondaryButton>
+      </form>
+
+      <ErrorNote message={error?.message} />
+
+      {(rateTerm || (pastItems && pastItems.length > 0)) && (
+        <div className="mb-6">
+          <SectionTitle>
+            {rateTerm ? `Past rates matching "${rateTerm}"` : "Recent quoted rates (R9 reference)"}
+          </SectionTitle>
+          <List>
+            {pastItems && pastItems.length > 0 ? (
+              pastItems.map((it) => (
+                <ListRow
+                  key={it.id}
+                  tone={STATUS_TONE[it.quotations.status]}
+                  title={
+                    <>
+                      {it.description}
+                      {it.notes ? ` (${it.notes})` : ""}
+                    </>
+                  }
+                  detail={
+                    <>
+                      <Link href={`/quotations/${it.quotations.id}`} className="underline">
+                        <Mono>{it.quotations.ref_no ?? "Draft"}</Mono>
+                      </Link>
+                      {" · "}
+                      {it.quotations.customers?.name ?? "Customer"}
+                      {" · "}
+                      {formatDateIN(it.quotations.quote_date)}
+                      {" · "}
+                      {QUOTATION_STATUS_LABEL[it.quotations.status]}
+                    </>
+                  }
+                  action={
+                    <div className="text-right">
+                      <Mono>{formatINR(it.rate)}</Mono>
+                      {it.basis ? <span className="ml-1 text-xs text-ink-3">{it.basis}</span> : null}
+                      {it.minimum_charge ? (
+                        <div className="text-xs text-ink-3">Min. {formatINR(it.minimum_charge)}</div>
+                      ) : null}
+                    </div>
+                  }
+                />
+              ))
+            ) : (
+              <EmptyRow>No past quoted items matched this search.</EmptyRow>
+            )}
+          </List>
+        </div>
+      )}
+
+      <SectionTitle>All quotations</SectionTitle>
+      <List>
+        {quotations?.map((qt) => (
+          <ListRow
+            key={qt.id}
+            tone={STATUS_TONE[qt.status]}
+            title={
+              <div className="flex flex-wrap items-center gap-2">
+                <Link href={`/quotations/${qt.id}`} className="hover:underline">
+                  <Mono>{qt.ref_no ?? "Draft"}</Mono>
+                </Link>
+                <span>{qt.customers?.name}</span>
+                <Badge>{QUOTATION_STATUS_LABEL[qt.status]}</Badge>
+              </div>
+            }
+            detail={
+              <>
+                {[
+                  formatDateIN(qt.quote_date),
+                  qt.subject,
+                  qt.attention ? `Attn: ${qt.attention}` : null,
+                  `${qt.quotation_items.length} item(s)`,
+                ]
+                  .filter(Boolean)
+                  .join(" · ")}
+                {qt.quotation_items.length > 0 && (
+                  <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                    {qt.quotation_items.slice(0, 3).map((it) => (
+                      <span key={it.id}>
+                        {it.description}: <Mono>{formatINR(it.rate)}</Mono> {it.basis ?? ""}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </>
+            }
+            action={
+              <ButtonLink href={`/quotations/${qt.id}`} variant="secondary" size="sm">
+                Open
+              </ButtonLink>
+            }
+          />
+        ))}
+        {quotations?.length === 0 && <EmptyRow>No quotations found.</EmptyRow>}
+      </List>
+    </>
+  );
+}
