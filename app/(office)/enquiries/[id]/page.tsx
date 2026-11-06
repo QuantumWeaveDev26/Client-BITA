@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge, Button, Card, ErrorNote, Field, PageHeader, Select } from "@/components/ui";
+import { Badge, Button, ButtonLink, Card, ErrorNote, Field, PageHeader, Select } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { Constants } from "@/lib/db/types";
 import { linkCustomer, setStatus } from "../actions";
@@ -37,7 +37,10 @@ export default async function EnquiryPage({
 
   return (
     <>
-      <PageHeader title={enquiry.subject || "(no subject)"} />
+      <PageHeader
+        title={enquiry.subject || "(no subject)"}
+        action={enquiry.customer_id ? <ButtonLink href={`/jobs/new?enquiry=${id}`}>Create job</ButtonLink> : undefined}
+      />
       <ErrorNote message={error} />
       <div className="mb-4 flex flex-wrap gap-2">
         <Badge>{SOURCE_LABEL[enquiry.source]}</Badge>
