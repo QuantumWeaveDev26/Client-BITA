@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
+import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState, type KeyboardEvent, type ReactNode } from "react";
 import { signOut } from "@/app/(auth)/login/actions";
+import { globalSearch } from "@/app/(office)/search-action";
 import { roleLabel } from "@/lib/roles";
-import { Avatar } from "./ui";
+import { moveSearchIndex, type SearchResponse } from "@/lib/search";
+import { Avatar, Mono } from "./ui";
 
 // The sidebar layout for office screens. Each role gets its own menu (D-015).
 
@@ -24,6 +26,7 @@ const ICONS = {
   equipment: "M4 7h16v10H4zM8 17v3M16 17v3",
   schedule: "M3 5h18v16H3zM3 10h18M8 3v4M16 3v4",
   chart: "M4 19V5M4 19h16M8 15v-4M12 15V8M16 15v-6",
+  search: "M11 19a8 8 0 100-16 8 8 0 000 16zM21 21l-4.35-4.35",
 } as const;
 
 function menuFor(roles: readonly string[], c: NavCounts): { main: NavItem[]; records: NavItem[] } {
@@ -96,6 +99,192 @@ function NavLink({ item, active }: { item: NavItem; active: boolean }) {
   );
 }
 
+function GlobalSearchBox() {
+  const router = useRouter();
+  const pathname = usePathname();
+  const containerRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const [query, setQuery] = useState("");
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [results, setResults] = useState<SearchResponse>({ query: "", groups: [], flat: [] });
+  const [activeIndex, setActiveIndex] = useState<number>(-1);
+
+  // Close search dropdown on route change
+  useEffect(() => {
+    setOpen(false);
+  }, [pathname]);
+
+  // Ctrl+K / Cmd+K global shortcut focuses the visible search input
+  useEffect(() => {
+    function onWindowKeyDown(e: globalThis.KeyboardEvent) {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        const el = inputRef.current;
+        if (el && el.offsetParent !== null) {
+          e.preventDefault();
+          el.focus();
+          el.select();
+          setOpen(true);
+        }
+      } else if (e.key === "Escape") {
+        setOpen(false);
+        inputRef.current?.blur();
+      }
+    }
+    window.addEventListener("keydown", onWindowKeyDown);
+    return () => window.removeEventListener("keydown", onWindowKeyDown);
+  }, []);
+
+  // Outside click closes dropdown
+  useEffect(() => {
+    function onMouseDown(e: MouseEvent) {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", onMouseDown);
+    return () => document.removeEventListener("mousedown", onMouseDown);
+  }, []);
+
+  // Debounced server search
+  useEffect(() => {
+    const trimmed = query.trim();
+    if (!trimmed) {
+      setResults({ query: "", groups: [], flat: [] });
+      setActiveIndex(-1);
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    const timer = setTimeout(async () => {
+      try {
+        const res = await globalSearch(trimmed);
+        if (!cancelled) {
+          setResults(res);
+          setActiveIndex(res.flat.length > 0 ? 0 : -1);
+          setLoading(false);
+        }
+      } catch {
+        if (!cancelled) setLoading(false);
+      }
+    }, 150);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, [query]);
+
+  function onInputKeyDown(e: KeyboardEvent<HTMLInputElement>) {
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setOpen(true);
+      setActiveIndex((idx) => moveSearchIndex(idx, 1, results.flat.length));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setOpen(true);
+      setActiveIndex((idx) => moveSearchIndex(idx, -1, results.flat.length));
+    } else if (e.key === "Enter") {
+      const target = results.flat[activeIndex] ?? results.flat[0];
+      if (target) {
+        e.preventDefault();
+        setOpen(false);
+        router.push(target.href);
+      }
+    } else if (e.key === "Escape") {
+      setOpen(false);
+      inputRef.current?.blur();
+    }
+  }
+
+  return (
+    <div ref={containerRef} className="relative">
+      <div className="flex items-center gap-2 rounded-lg border border-line bg-white px-2.5 py-1.5 text-[13px] text-ink focus-within:border-ink">
+        <span className="text-ink-3">
+          <Icon name="search" />
+        </span>
+        <input
+          ref={inputRef}
+          type="search"
+          value={query}
+          onChange={(e) => {
+            setQuery(e.target.value);
+            setOpen(true);
+          }}
+          onFocus={() => setOpen(true)}
+          onKeyDown={onInputKeyDown}
+          placeholder="Search…"
+          aria-label="Global search"
+          className="min-w-0 flex-1 bg-transparent text-[13px] text-ink placeholder:text-ink-3 focus:outline-none"
+        />
+        <kbd className="shrink-0 rounded border border-line bg-side px-1.5 py-0.5 font-mono text-[10.5px] text-ink-3">
+          Ctrl K
+        </kbd>
+      </div>
+
+      {open && query.trim().length > 0 && (
+        <div
+          role="listbox"
+          aria-label="Search results"
+          className="absolute left-0 right-0 z-30 mt-1.5 max-h-[420px] min-w-[280px] overflow-y-auto rounded-xl border border-line bg-white p-1.5 md:w-[360px]"
+        >
+          {loading && results.flat.length === 0 ? (
+            <div className="px-3 py-4 text-[12.5px] text-ink-3">Searching…</div>
+          ) : results.groups.length === 0 ? (
+            <div className="px-3 py-4 text-[12.5px] text-ink-3">
+              No matching jobs, customers, reports, enquiries or quotations.
+            </div>
+          ) : (
+            results.groups.map((grp) => (
+              <div key={grp.group} className="mb-1.5 last:mb-0">
+                <div className="px-2.5 py-1 text-[11px] font-semibold uppercase tracking-wider text-ink-3">
+                  {grp.group}
+                </div>
+                <ul>
+                  {grp.items.map((item) => {
+                    const flatIdx = results.flat.findIndex(
+                      (f) => f.group === item.group && f.id === item.id
+                    );
+                    const selected = flatIdx === activeIndex;
+                    return (
+                      <li key={`${item.group}-${item.id}`}>
+                        <Link
+                          href={item.href}
+                          onClick={() => setOpen(false)}
+                          onMouseEnter={() => setActiveIndex(flatIdx)}
+                          className={`block rounded-lg px-2.5 py-1.5 text-[13px] ${
+                            selected ? "bg-side text-ink" : "text-ink-2 hover:bg-side hover:text-ink"
+                          }`}
+                        >
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="truncate font-medium text-ink">
+                              {item.code && (
+                                <span className="mr-1.5">
+                                  <Mono>{item.code}</Mono>
+                                </span>
+                              )}
+                              {item.title}
+                            </span>
+                          </div>
+                          {item.subtitle && (
+                            <div className="truncate text-[11.5px] text-ink-3">{item.subtitle}</div>
+                          )}
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function AppShell({
   person,
   counts,
@@ -119,6 +308,9 @@ export function AppShell({
             <button className="text-[13px] text-ink-2">Log out</button>
           </form>
         </div>
+        <div className="px-3 pb-2">
+          <GlobalSearchBox />
+        </div>
         <nav className="flex gap-1 overflow-x-auto px-2 pb-2">
           {[...main, ...records].map((item) => (
             <NavLink key={item.href} item={item} active={isActive(item.href)} />
@@ -128,8 +320,11 @@ export function AppShell({
 
       {/* Desktop and tablet: the sidebar. */}
       <aside className="sticky top-0 hidden h-screen flex-col gap-0.5 border-r border-line bg-side px-2.5 py-3.5 md:flex">
-        <div className="px-2 pb-4">
+        <div className="px-2 pb-3">
           <Org subtitle={roleLabel(person.roles)} />
+        </div>
+        <div className="px-1 pb-2.5">
+          <GlobalSearchBox />
         </div>
         <nav className="flex flex-col gap-0.5">
           {main.map((item) => (
