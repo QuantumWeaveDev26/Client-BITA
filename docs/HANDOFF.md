@@ -107,6 +107,18 @@ Decisions made in this session: <or "none">
 
 ## Handoff entries (newest first)
 
+### 2026-11-06 12:30 – Naveen – report review – from Codex to Orion
+Branch: feature/naveen-report-review (WIP pushed at session end; base report-templates, merged dashboard and field-my-jobs)
+Task: T8 review/approval/PDF, then T9 — stopped by Naveen
+Stopped at: Preparation/snapshot logic and draft/send-for-review actions implemented; review page/readings UI and private branding loader built. approveReport, generateReportPdf, returnReport and markReportSent intentionally fail closed with clear pending-integration messages. Download button targets a PDF route not yet implemented. No PDF renderer/storage publication yet; T9 not started.
+Next step: Read C:\BITA-shared\handoffs\T8.md and inbox/orion.md requests. Implement atomic authenticated-actor approval/return/sent operations and safe PDF publication; add runtime renderer/package via shared owner; finish PDF route; run lint/typecheck/build and workflow tests, then T9.
+Files touched: app/(office)/review/, lib/reports/review.ts, review.test.ts, branding.server.ts, own docs progress/handoff.
+How to run / test: npm test: 67 pass. Earlier typecheck passed before last test additions; final T8 build not run. Only fake fixtures used in tests.
+Known problems: Current DB report approval trigger accepts another reviewer's id without proving actual actor; package/storage/immutable-path requests pending with Orion. WIP must not be merged or used as completed approval functionality.
+Decisions made in this session: none; proposed immutable PDF path needs coordinator confirmation.
+
+
+
 ### 2026-11-06 11:54 – Naveen – report templates – from Codex to review and T7
 Branch: feature/naveen-report-templates (base feature/naveen-technician-access; pushed at step end)
 Task: T8a typed readings and paper report layouts

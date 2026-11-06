@@ -12,7 +12,7 @@ Everyone adds a log entry at the end of every session (newest at the top of the 
 | Customer and enquiry screens | Naveen | In review | feature/naveen-login-customers-enquiries | Login, customers with contacts, enquiries with customer link |
 | Jobs, quotations, POs, scheduling | Naveen | Not started | | |
 | Technician field form | Naveen | Not started | | |
-| Report templates + approval + PDF | Naveen | In review | feature/naveen-report-templates | T8a fields/templates/staff preview ready; T8 review/approval/PDF persistence is separate |
+| Report templates + approval + PDF | Naveen | In progress | feature/naveen-report-review | T8 WIP saved; paused by Naveen. Preparation/review UI built; atomic approval/PDF/sent actions pending. T8a remains PR 11 |
 | AI report drafting | Naveen | Not started | | |
 | Zoho Books integration | Naveen | Not started | | Needs Zoho admin access |
 | Payments, reminders, job closure | Naveen | Not started | | |
@@ -66,6 +66,13 @@ Files changed: <main files or folders>
 Next: <the next concrete step>
 Blockers / questions: <or "none">
 ```
+
+### 2026-11-06 12:30 – Naveen – Codex
+Task: T8 report preparation, review, approval and signed PDF — stopped at Naveen's request
+Done: Created report-review branch from templates and merged dashboard/field-my-jobs. Added draft preparation from validated submitted readings, source snapshot hashes, refresh/send-for-review actions, review preview/readings UI, and private branding loader. Latest 67 tests pass; an earlier typecheck passed. No final T8 production build or live upload check yet.
+Files changed: app/(office)/review/, lib/reports/review.ts and tests, lib/reports/branding.server.ts, docs/PROGRESS.md, docs/HANDOFF.md
+Next: Orion takes the saved WIP. Integrate atomic report transition RPCs and the server PDF renderer, finish download route and manual sent tracking, then T9 history.
+Blockers / questions: Approval/PDF/return/sent actions deliberately fail closed pending coordinator-owned database/package work. Shared package, transition hardening, branding configuration and immutable PDF-path requests sent to Orion. T9 not started.
 
 ### 2026-11-06 11:54 – Naveen – Codex
 Task: T8a typed report fields and UT/MT/DPT paper templates
