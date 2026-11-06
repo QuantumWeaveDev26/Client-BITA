@@ -107,6 +107,18 @@ Decisions made in this session: <or "none">
 
 ## Handoff entries (newest first)
 
+### 2026-11-06 11:54 – Naveen – report templates – from Codex to review and T7
+Branch: feature/naveen-report-templates (base feature/naveen-technician-access; pushed at step end)
+Task: T8a typed readings and paper report layouts
+Stopped at: T8a implemented. 46 tests and production build pass. UT/MT/DPT draft and approved fake-data PDF fixtures fit one A4 page; phone previews contain horizontal paper scrolling. Source grid widths/spans and typography inspected locally; no real source data or assets committed.
+Next step: Review preview routes against Word originals. T7 uses lib/reports/fields.ts. T8 must supply trusted approval and signed branding URLs, inline report.css into standalone PDF HTML, then persist PDFs through its authorized server workflow.
+Files touched: lib/reports/, templates/reports/, app/(reports)/report-preview/, own docs progress/handoff.
+How to run / test: npm test; npm run build; /report-preview/UT, /report-preview/MT, /report-preview/DPT as staff. Set T8A_RENDER_DIR when running tests to export fake HTML for local print checks.
+Known problems: Templates are renderers only; no approval action, PDF persistence or sending in T8a. Fine visual comparison with original Word formats remains a review step.
+Decisions made in this session: none
+
+
+
 ### 2026-11-06 11:48 – Naveen – report fields – from Codex to T7 integration
 Branch: feature/naveen-report-templates (base feature/naveen-technician-access)
 Task: T8a report fields and paper templates

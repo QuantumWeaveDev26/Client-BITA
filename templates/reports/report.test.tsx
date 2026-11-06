@@ -23,6 +23,10 @@ describe("paper report layouts", () => {
     if (process.env.T8A_RENDER_DIR) {
       mkdirSync(process.env.T8A_RENDER_DIR, { recursive: true });
       writeFileSync(join(process.env.T8A_RENDER_DIR, `${method}.html`), `<!doctype html><html><head><meta charset="utf-8" /></head><body>${html}</body></html>`);
+      const fakeAsset = (label: string) => `data:image/svg+xml,${encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" width="180" height="60"><rect width="180" height="60" fill="white" stroke="black"/><text x="8" y="35" font-size="14">${label}</text></svg>`)}`;
+      document.approval = { approved: true, approvedAt: "2026-11-06T08:00:00Z", signatoryName: "FAKE TEST Reviewer", signatoryQualification: "Fake qualification", signatureUrl: fakeAsset("FAKE SIGNATURE"), sealUrl: fakeAsset("FAKE SEAL") };
+      const approved = renderToStaticMarkup(<ReportTemplate method={method} document={document} />);
+      writeFileSync(join(process.env.T8A_RENDER_DIR, `${method}-approved.html`), `<!doctype html><html><head><meta charset="utf-8" /></head><body>${approved}</body></html>`);
     }
   });
 

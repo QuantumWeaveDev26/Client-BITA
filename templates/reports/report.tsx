@@ -2,7 +2,6 @@ import type { ReactNode } from "react";
 import { reportMethod, type ReadingValue, type ReportMethodInput, type ReportReadings } from "../../lib/reports/fields";
 import { REPORT_LAYOUTS } from "./layouts";
 import type { ReportDocument } from "./types";
-import "./report.css";
 
 function value(reading: ReadingValue | undefined): string {
   return reading === null || reading === undefined || String(reading).trim() === "" ? "—" : String(reading);
@@ -91,7 +90,7 @@ export function ReportTemplate({ method: input, document }: { method: ReportMeth
       <tbody><tr className="report-item-heading"><th scope="col" colSpan={layout.items[0]}>Description</th><th scope="col" colSpan={layout.items[1]}>Qty.</th><th scope="col" colSpan={layout.items[2]}>Observations/Remarks</th></tr></tbody>
       <tbody className="report-item-body">
         {items.map((item, index) => <tr key={index} className="report-item-row">
-          <td colSpan={layout.items[0]}>{method === "DPT" && index === 0 && r.component_description && r.component_description !== item.description && <>{value(r.component_description)}<br /><br /></>}{value(item.description)}</td>
+          <td colSpan={layout.items[0]}>{method === "DPT" && index === 0 && r.component_description && !String(item.description ?? "").startsWith(String(r.component_description)) && <>{value(r.component_description)}<br /><br /></>}{value(item.description)}</td>
           <td colSpan={layout.items[1]} className="report-quantity">{value(item.quantity)}</td>
           <td colSpan={layout.items[2]}>{value(item.observations)}</td>
         </tr>)}

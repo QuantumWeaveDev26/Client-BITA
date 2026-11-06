@@ -4,6 +4,7 @@ import { isStaff, requireStaff } from "@/lib/auth";
 import { ReportTemplate } from "@/templates/reports/report";
 import { previewDocument } from "@/templates/reports/preview-data";
 import { PrintButton } from "./print-button";
+import "@/templates/reports/report.css";
 
 export const metadata = { title: "Report format preview – BITA" };
 
