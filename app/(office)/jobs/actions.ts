@@ -40,11 +40,29 @@ async function savePoFile(supabase: Supabase, jobId: string, fd: FormData): Prom
 export async function createJob(fd: FormData) {
   const { supabase } = await requireStaff();
   const fields = jobFields(fd);
+
+  if (fields.quotation_id && !fields.enquiry_id) {
+    const { data: qt } = await supabase
+      .from("quotations")
+      .select("enquiry_id")
+      .eq("id", fields.quotation_id)
+      .maybeSingle();
+    if (qt?.enquiry_id) {
+      fields.enquiry_id = qt.enquiry_id;
+    }
+  }
+
   const { data, error } = await supabase.from("jobs").insert(fields).select("id").single();
   if (error) redirect("/jobs/new?error=" + encodeURIComponent(friendlyError(error.message)));
 
   if (fields.enquiry_id) {
     await supabase.from("enquiries").update({ status: "converted" }).eq("id", fields.enquiry_id);
+    revalidatePath(`/enquiries/${fields.enquiry_id}`);
+    revalidatePath("/enquiries");
+  }
+  if (fields.quotation_id) {
+    revalidatePath(`/quotations/${fields.quotation_id}`);
+    revalidatePath("/quotations");
   }
   const fileError = await savePoFile(supabase, data.id, fd);
   redirect(`/jobs/${data.id}` + (fileError ? "?error=" + encodeURIComponent("Job saved, but the PO file was not: " + fileError) : ""));

@@ -24,17 +24,27 @@ import { Constants } from "@/lib/db/types";
 import { formatIST } from "../../enquiries/labels";
 import { formatINR } from "../../jobs/labels";
 import {
+  acceptQuotation,
   addQuotationItem,
-  approveQuotation,
   deleteQuotationItem,
+  markQuotationSent,
+  rejectQuotation,
+  reopenQuotationDraft,
   reviseQuotation,
   setQuotationStatus,
   updateQuotation,
   updateQuotationItem,
+  uploadQuotationFile,
 } from "../actions";
 import { formatDateIN, QUOTATION_STATUS_LABEL } from "../labels";
 import { quotationFormOptions } from "../options";
 import { QuotationForm } from "../quotation-form";
+import {
+  calculateQuotationTotal,
+  QUOTATION_FILE_ACCEPT,
+  quotationFileName,
+  quotationStatusDisplay,
+} from "../upload";
 
 export default async function QuotationPage({
   params,
@@ -66,7 +76,7 @@ export default async function QuotationPage({
   const [customer, enquiry, items, approver, supersededBy, linkedJobs, pastRates, options] = await Promise.all([
     supabase.from("customers").select("*").eq("id", quotation.customer_id).maybeSingle(),
     quotation.enquiry_id
-      ? supabase.from("enquiries").select("id, subject, source, received_at").eq("id", quotation.enquiry_id).maybeSingle()
+      ? supabase.from("enquiries").select("id, subject, source, status, received_at").eq("id", quotation.enquiry_id).maybeSingle()
       : null,
     supabase.from("quotation_items").select("*").eq("quotation_id", id).order("position").order("id"),
     quotation.approved_by
@@ -84,12 +94,15 @@ export default async function QuotationPage({
     quotationFormOptions(supabase),
   ]);
 
-  const pdfUrl = quotation.pdf_path
-    ? (await supabase.storage.from("documents").createSignedUrl(quotation.pdf_path, 600)).data?.signedUrl
-    : null;
-
+  const uploadedFileName = quotationFileName(quotation.pdf_path);
+  const statusInfo = quotationStatusDisplay(quotation);
+  const totalAmount = calculateQuotationTotal(items.data ?? []);
   const isManagement = Boolean(person?.roles.includes("management"));
   const nextPosition = (items.data?.length ?? 0) + 1;
+
+  const createJobHref = `/jobs/new?quotation=${id}&customer=${quotation.customer_id}${
+    quotation.enquiry_id ? `&enquiry=${quotation.enquiry_id}` : ""
+  }`;
 
   return (
     <>
@@ -97,12 +110,23 @@ export default async function QuotationPage({
         title={quotation.ref_no ? `Quotation ${quotation.ref_no}` : "Draft quotation"}
         action={
           <>
-            <ButtonLink href={`/quotations/${id}/print`}>Letterhead / PDF</ButtonLink>
-            <ButtonLink
-              href={`/jobs/new?customer=${quotation.customer_id}${quotation.enquiry_id ? `&enquiry=${quotation.enquiry_id}` : ""}`}
-              variant="secondary"
-            >
-              Create job
+            {uploadedFileName && (
+              <ButtonLink
+                href={`/quotations/${id}/file`}
+                variant={quotation.status === "accepted" ? "secondary" : "primary"}
+              >
+                Download quotation file
+              </ButtonLink>
+            )}
+            {quotation.status === "accepted" ? (
+              <ButtonLink href={createJobHref}>Create job</ButtonLink>
+            ) : (
+              <ButtonLink href={createJobHref} variant="secondary">
+                Create job
+              </ButtonLink>
+            )}
+            <ButtonLink href={`/quotations/${id}/print`} variant="secondary">
+              Letterhead (fallback)
             </ButtonLink>
           </>
         }
@@ -112,8 +136,10 @@ export default async function QuotationPage({
       {saved && <SavedNote />}
 
       <div className="mb-5 flex flex-wrap items-center gap-3">
-        <Badge>{QUOTATION_STATUS_LABEL[quotation.status]}</Badge>
-        <span className="text-xs text-ink-3">Date: {formatDateIN(quotation.quote_date)} · No fixed expiry (R11)</span>
+        <Badge>{statusInfo.label}</Badge>
+        <span className="text-xs text-ink-3">
+          Date: {formatDateIN(quotation.quote_date)} · Quoted total: <Mono>{formatINR(totalAmount)}</Mono>
+        </span>
         {approver?.data && quotation.approved_at && (
           <Status tone="ok">
             Approved by {approver.data.full_name} ({formatIST(quotation.approved_at)})
@@ -135,6 +161,132 @@ export default async function QuotationPage({
 
       <div className="grid gap-6 lg:grid-cols-2">
         <div className="space-y-6">
+          <Card className="space-y-4">
+            <SectionTitle>Uploaded quotation file &amp; acceptance flow</SectionTitle>
+
+            <div className="rounded-md border border-line-2 bg-surface-2 p-3 text-sm">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div>
+                  <div className="text-xs font-medium text-ink-3">Quotation document (PDF / Word)</div>
+                  {uploadedFileName ? (
+                    <div className="mt-0.5 font-medium text-ink">
+                      <a href={`/quotations/${id}/file`} className="underline">
+                        {uploadedFileName}
+                      </a>
+                    </div>
+                  ) : (
+                    <div className="mt-0.5 text-ink-3">No quotation file uploaded yet.</div>
+                  )}
+                </div>
+                {uploadedFileName && (
+                  <ButtonLink href={`/quotations/${id}/file`} variant="secondary" size="sm">
+                    Download file
+                  </ButtonLink>
+                )}
+              </div>
+
+              <form
+                action={uploadQuotationFile.bind(null, id)}
+                className="mt-3 flex flex-wrap items-center gap-2 border-t border-line-2 pt-3"
+              >
+                <Input name="pdf_file" type="file" accept={QUOTATION_FILE_ACCEPT} required className="max-w-xs" />
+                <SecondaryButton type="submit">
+                  {uploadedFileName ? "Replace quotation file" : "Upload quotation file"}
+                </SecondaryButton>
+              </form>
+            </div>
+
+            <div className="space-y-3 border-t border-line-2 pt-3">
+              <div className="text-xs text-ink-2">
+                Workflow: <strong>Draft</strong> → <strong>Sent to customer</strong> (records send after BITA emails it)
+                → <strong>Accepted by customer</strong> or <strong>Rejected</strong> → <strong>Create job</strong>.
+              </div>
+
+              {quotation.status === "accepted" && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line-2 bg-surface-2 p-3">
+                  <Status tone="ok">Accepted by customer — ready to create the job and start work.</Status>
+                  <ButtonLink href={createJobHref}>Create job</ButtonLink>
+                </div>
+              )}
+
+              {statusInfo.isRejected && (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-line-2 bg-surface-2 p-3">
+                  <Status tone="bad">Rejected by customer.</Status>
+                  <div className="flex flex-wrap gap-2">
+                    <form action={reopenQuotationDraft.bind(null, id)}>
+                      <SecondaryButton type="submit">
+                        Reopen as draft
+                      </SecondaryButton>
+                    </form>
+                    {isManagement && (
+                      <form action={reviseQuotation.bind(null, id)}>
+                        <SecondaryButton type="submit">
+                          Create revised quotation
+                        </SecondaryButton>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {isManagement ? (
+                <div className="flex flex-wrap items-center gap-2">
+                  {(quotation.status === "draft" || quotation.status === "approved") && (
+                    <form action={markQuotationSent.bind(null, id)}>
+                      <Button type="submit">Sent to customer</Button>
+                    </form>
+                  )}
+
+                  {(quotation.status === "sent" ||
+                    quotation.status === "approved" ||
+                    quotation.status === "draft") && (
+                    <form action={acceptQuotation.bind(null, id)}>
+                      {quotation.status === "sent" ? (
+                        <Button type="submit">Accepted by customer</Button>
+                      ) : (
+                        <SecondaryButton type="submit">Accepted by customer</SecondaryButton>
+                      )}
+                    </form>
+                  )}
+
+                  {!statusInfo.isRejected && quotation.status !== "superseded" && (
+                    <form action={rejectQuotation.bind(null, id)}>
+                      <SecondaryButton type="submit">Rejected</SecondaryButton>
+                    </form>
+                  )}
+
+                  <form action={reviseQuotation.bind(null, id)}>
+                    <SecondaryButton type="submit">Create revised quotation (R11)</SecondaryButton>
+                  </form>
+                </div>
+              ) : (
+                <Status tone="wait">
+                  Your account does not have the management role, so you can upload files and draft items but cannot
+                  approve or mark quotations sent/accepted.
+                </Status>
+              )}
+
+              {isManagement && (
+                <form action={setQuotationStatus.bind(null, id)} className="flex flex-wrap items-center gap-2 pt-1">
+                  <Select
+                    name="status"
+                    defaultValue={statusInfo.isRejected ? "rejected" : quotation.status}
+                  >
+                    {Constants.public.Enums.quotation_status.map((s) => (
+                      <option key={s} value={s}>
+                        {QUOTATION_STATUS_LABEL[s]}
+                      </option>
+                    ))}
+                    <option value="rejected">Rejected</option>
+                  </Select>
+                  <SecondaryButton type="submit">
+                    Update status
+                  </SecondaryButton>
+                </form>
+              )}
+            </div>
+          </Card>
+
           <Card className="space-y-2">
             <SectionTitle>Customer &amp; enquiry</SectionTitle>
             {customer.data && (
@@ -158,24 +310,25 @@ export default async function QuotationPage({
             <div className="pt-2 text-sm">
               <span className="text-ink-3">Enquiry: </span>
               {enquiry?.data ? (
-                <Link href={`/enquiries/${enquiry.data.id}`} className="underline">
-                  {enquiry.data.subject ?? "(no subject)"}
-                </Link>
+                <>
+                  <Link href={`/enquiries/${enquiry.data.id}`} className="underline">
+                    {enquiry.data.subject ?? "(no subject)"}
+                  </Link>
+                  <span className="ml-2 text-xs text-ink-3">({enquiry.data.status})</span>
+                </>
               ) : (
                 "None"
               )}
             </div>
-            {pdfUrl && (
-              <div className="pt-1 text-sm">
-                <a href={pdfUrl} target="_blank" rel="noreferrer" className="underline">
-                  Open uploaded PDF file
-                </a>
-              </div>
-            )}
           </Card>
 
           <Card className="space-y-4">
-            <SectionTitle>Priced items (R9)</SectionTitle>
+            <div className="flex items-center justify-between">
+              <SectionTitle>Priced items, rates &amp; total (R9)</SectionTitle>
+              <div className="text-xs text-ink-2">
+                Total: <strong className="text-ink"><Mono>{formatINR(totalAmount)}</Mono></strong>
+              </div>
+            </div>
             <ul className="space-y-4">
               {items.data?.map((it) => (
                 <li key={it.id} className="border-b border-line-2 pb-4 last:border-0">
@@ -207,6 +360,11 @@ export default async function QuotationPage({
               )}
             </ul>
 
+            <div className="flex items-center justify-between rounded-md border border-line bg-surface-2 px-3 py-2 text-sm">
+              <span className="font-medium text-ink-2">Quoted total (before GST)</span>
+              <strong className="text-ink"><Mono>{formatINR(totalAmount)}</Mono></strong>
+            </div>
+
             <details className="pt-2" open={(items.data?.length ?? 0) === 0}>
               <summary className="cursor-pointer text-sm font-semibold underline">Add a priced item</summary>
               <form action={addQuotationItem.bind(null, id)} className="mt-3 space-y-3">
@@ -214,45 +372,6 @@ export default async function QuotationPage({
                 <Button type="submit">Add item</Button>
               </form>
             </details>
-          </Card>
-
-          <Card className="space-y-3">
-            <SectionTitle>Management approval &amp; revisions (R10, R11)</SectionTitle>
-            <p className="text-xs text-ink-2">
-              Only Anand Teertha or S. Radhakrishnan (management) can approve and send a quotation (R10). Quotations
-              have no expiry date; management decides when to issue a revised quotation (R11).
-            </p>
-
-            {isManagement ? (
-              <div className="space-y-3">
-                <div className="flex flex-wrap gap-2">
-                  {quotation.status === "draft" && (
-                    <form action={approveQuotation.bind(null, id)}>
-                      <Button type="submit">Approve quotation</Button>
-                    </form>
-                  )}
-                  <form action={reviseQuotation.bind(null, id)}>
-                    <SecondaryButton type="submit">Create revised quotation (R11)</SecondaryButton>
-                  </form>
-                </div>
-
-                <form action={setQuotationStatus.bind(null, id)} className="flex flex-wrap items-center gap-2 pt-2">
-                  <Select name="status" defaultValue={quotation.status}>
-                    {Constants.public.Enums.quotation_status.map((s) => (
-                      <option key={s} value={s}>
-                        {QUOTATION_STATUS_LABEL[s]}
-                      </option>
-                    ))}
-                  </Select>
-                  <SecondaryButton type="submit">Update status</SecondaryButton>
-                </form>
-              </div>
-            ) : (
-              <Status tone="wait">
-                Your account does not have the management role, so you can draft items but cannot approve this
-                quotation.
-              </Status>
-            )}
           </Card>
 
           <div>

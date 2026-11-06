@@ -18,6 +18,7 @@ import { requireStaff } from "@/lib/auth";
 import { Constants, type Enums } from "@/lib/db/types";
 import { formatINR } from "../jobs/labels";
 import { formatDateIN, QUOTATION_STATUS_LABEL } from "./labels";
+import { calculateQuotationTotal, quotationFileName, quotationStatusDisplay } from "./upload";
 
 export const metadata = { title: "Quotations – BITA" };
 
@@ -40,7 +41,7 @@ export default async function QuotationsPage({
   let query = supabase
     .from("quotations")
     .select(
-      "id, ref_no, quote_date, subject, attention, status, approved_at, customers(name), quotation_items(id, description, basis, rate, minimum_charge)",
+      "id, ref_no, customer_id, enquiry_id, quote_date, subject, attention, status, approved_at, pdf_path, superseded_by, customers(name), quotation_items(id, description, basis, rate, minimum_charge)",
     )
     .order("quote_date", { ascending: false })
     .limit(100);
@@ -74,8 +75,8 @@ export default async function QuotationsPage({
     <>
       <PageHeader
         title="Quotations"
-        subtitle="Customer quotations, past rates (R9) and management approval (R10)."
-        action={<ButtonLink href="/quotations/new">New quotation</ButtonLink>}
+        subtitle="Uploaded quotations, priced items & total, customer acceptance, and past rates (R9)."
+        action={<ButtonLink href="/quotations/new">Upload / new quotation</ButtonLink>}
       />
 
       <form className="mb-5 grid gap-3 sm:grid-cols-[1fr_1fr_auto_auto]">
@@ -144,47 +145,77 @@ export default async function QuotationsPage({
 
       <SectionTitle>All quotations</SectionTitle>
       <List>
-        {quotations?.map((qt) => (
-          <ListRow
-            key={qt.id}
-            tone={STATUS_TONE[qt.status]}
-            title={
-              <div className="flex flex-wrap items-center gap-2">
-                <Link href={`/quotations/${qt.id}`} className="hover:underline">
-                  <Mono>{qt.ref_no ?? "Draft"}</Mono>
-                </Link>
-                <span>{qt.customers?.name}</span>
-                <Badge>{QUOTATION_STATUS_LABEL[qt.status]}</Badge>
-              </div>
-            }
-            detail={
-              <>
-                {[
-                  formatDateIN(qt.quote_date),
-                  qt.subject,
-                  qt.attention ? `Attn: ${qt.attention}` : null,
-                  `${qt.quotation_items.length} item(s)`,
-                ]
-                  .filter(Boolean)
-                  .join(" · ")}
-                {qt.quotation_items.length > 0 && (
-                  <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
-                    {qt.quotation_items.slice(0, 3).map((it) => (
-                      <span key={it.id}>
-                        {it.description}: <Mono>{formatINR(it.rate)}</Mono> {it.basis ?? ""}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </>
-            }
-            action={
-              <ButtonLink href={`/quotations/${qt.id}`} variant="secondary" size="sm">
-                Open
-              </ButtonLink>
-            }
-          />
-        ))}
+        {quotations?.map((qt) => {
+          const statusInfo = quotationStatusDisplay(qt);
+          const total = calculateQuotationTotal(qt.quotation_items);
+          const fileName = quotationFileName(qt.pdf_path);
+          return (
+            <ListRow
+              key={qt.id}
+              tone={statusInfo.tone}
+              title={
+                <div className="flex flex-wrap items-center gap-2">
+                  <Link href={`/quotations/${qt.id}`} className="hover:underline">
+                    <Mono>{qt.ref_no ?? "Draft"}</Mono>
+                  </Link>
+                  <span>{qt.customers?.name}</span>
+                  <Badge>{statusInfo.label}</Badge>
+                  {total > 0 && (
+                    <span className="text-xs text-ink-2">
+                      Total: <Mono>{formatINR(total)}</Mono>
+                    </span>
+                  )}
+                </div>
+              }
+              detail={
+                <>
+                  {[
+                    formatDateIN(qt.quote_date),
+                    qt.subject,
+                    qt.attention ? `Attn: ${qt.attention}` : null,
+                    `${qt.quotation_items.length} item(s)`,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                  {fileName && (
+                    <>
+                      {" · "}
+                      <a href={`/quotations/${qt.id}/file`} className="underline">
+                        {fileName}
+                      </a>
+                    </>
+                  )}
+                  {qt.quotation_items.length > 0 && (
+                    <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5">
+                      {qt.quotation_items.slice(0, 3).map((it) => (
+                        <span key={it.id}>
+                          {it.description}: <Mono>{formatINR(it.rate)}</Mono> {it.basis ?? ""}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </>
+              }
+              action={
+                <div className="flex items-center gap-2">
+                  {qt.status === "accepted" && (
+                    <ButtonLink
+                      href={`/jobs/new?quotation=${qt.id}&customer=${qt.customer_id}${
+                        qt.enquiry_id ? `&enquiry=${qt.enquiry_id}` : ""
+                      }`}
+                      size="sm"
+                    >
+                      Create job
+                    </ButtonLink>
+                  )}
+                  <ButtonLink href={`/quotations/${qt.id}`} variant="secondary" size="sm">
+                    Open
+                  </ButtonLink>
+                </div>
+              }
+            />
+          );
+        })}
         {quotations?.length === 0 && <EmptyRow>No quotations found.</EmptyRow>}
       </List>
     </>
