@@ -291,3 +291,18 @@ describe("quotations", () => {
     ).rejects.toThrow(/Only management/);
   });
 });
+
+describe("technician phone pairing", () => {
+  it("hides pairing codes and devices from non-staff and lets office revoke only", async () => {
+    await db.exec(`
+      insert into pairing_codes (person_id, code_hash, expires_at) values ('10000000-0000-0000-0000-00000000000d', 'hash-1', now() + interval '15 minutes');
+      insert into technician_devices (id, person_id, secret_hash) values ('50000000-0000-0000-0000-000000000001', '10000000-0000-0000-0000-00000000000d', 'secret-1');
+    `);
+    const outsider = await as(OUTSIDER, "select * from technician_devices");
+    expect(outsider.rows).toHaveLength(0);
+    const office = await as(OFFICE, "update technician_devices set revoked_at = now() where id = '50000000-0000-0000-0000-000000000001' returning id");
+    expect(office.rows).toHaveLength(1);
+    await expect(as(OFFICE, "update technician_devices set secret_hash = 'x' where id = '50000000-0000-0000-0000-000000000001'")).rejects.toThrow();
+    await expect(as(OFFICE, "insert into pairing_codes (person_id, code_hash, expires_at) values ('10000000-0000-0000-0000-00000000000d', 'h2', now())")).rejects.toThrow();
+  });
+});

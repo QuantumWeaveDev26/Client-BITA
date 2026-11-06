@@ -55,6 +55,7 @@ export type Database = {
           notes: string | null
           notified_at: string | null
           person_id: string
+          started_at: string | null
           work_date: string
         }
         Insert: {
@@ -66,6 +67,7 @@ export type Database = {
           notes?: string | null
           notified_at?: string | null
           person_id: string
+          started_at?: string | null
           work_date: string
         }
         Update: {
@@ -77,6 +79,7 @@ export type Database = {
           notes?: string | null
           notified_at?: string | null
           person_id?: string
+          started_at?: string | null
           work_date?: string
         }
         Relationships: [
@@ -595,6 +598,44 @@ export type Database = {
           },
         ]
       }
+      pairing_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          created_by: string | null
+          expires_at: string
+          id: string
+          person_id: string
+          used_at: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          created_by?: string | null
+          expires_at: string
+          id?: string
+          person_id: string
+          used_at?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          created_by?: string | null
+          expires_at?: string
+          id?: string
+          person_id?: string
+          used_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pairing_codes_person_id_fkey"
+            columns: ["person_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       payment_reminders: {
         Row: {
           from_mailbox: string | null
@@ -943,6 +984,47 @@ export type Database = {
           {
             foreignKeyName: "reports_signatory_id_fkey"
             columns: ["signatory_id"]
+            isOneToOne: false
+            referencedRelation: "people"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      technician_devices: {
+        Row: {
+          device_name: string | null
+          id: string
+          last_seen_at: string | null
+          paired_at: string
+          person_id: string
+          push_token: string | null
+          revoked_at: string | null
+          secret_hash: string
+        }
+        Insert: {
+          device_name?: string | null
+          id?: string
+          last_seen_at?: string | null
+          paired_at?: string
+          person_id: string
+          push_token?: string | null
+          revoked_at?: string | null
+          secret_hash: string
+        }
+        Update: {
+          device_name?: string | null
+          id?: string
+          last_seen_at?: string | null
+          paired_at?: string
+          person_id?: string
+          push_token?: string | null
+          revoked_at?: string | null
+          secret_hash?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "technician_devices_person_id_fkey"
+            columns: ["person_id"]
             isOneToOne: false
             referencedRelation: "people"
             referencedColumns: ["id"]
