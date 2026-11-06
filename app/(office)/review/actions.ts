@@ -7,14 +7,17 @@ import { requireStaff } from "@/lib/auth";
 import type { Database } from "@/lib/db/types";
 import { text } from "@/lib/forms";
 import { loadReportApprovalAssets } from "@/lib/reports/branding.server";
+import { missingFields } from "@/lib/reports/fields";
 import {
   buildReportContent,
   checkReportReadiness,
   extractReadings,
   friendlyReportError,
   generateSignedReportPdfBytes,
+  parseEditedReportReadings,
   parseRecipients,
   reportPdfStoragePath,
+  supportedMethod,
   validUuid,
 } from "@/lib/reports/review";
 
@@ -159,6 +162,80 @@ export async function refreshReportFromInspection(reportId: string) {
 
   revalidateReportPaths(report.id, report.job_id);
   redirect(`${path}?saved=refreshed`);
+}
+
+export async function updateReportContent(reportId: string, fd: FormData) {
+  if (!validUuid(reportId)) redirect("/review");
+  const { supabase, person } = await requireStaff();
+  if (!person) redirect("/login");
+
+  const path = `/review/${reportId}`;
+  const { data: report } = await supabase
+    .from("reports")
+    .select("*")
+    .eq("id", reportId)
+    .maybeSingle();
+
+  if (!report) redirect("/review");
+  if (report.approved_at || ["approved", "sent"].includes(report.status)) {
+    redirectError(
+      path,
+      "An approved report cannot be edited. Return the report to unlock it first."
+    );
+  }
+
+  const { data: inspection } = report.inspection_id
+    ? await supabase
+        .from("inspections")
+        .select("*")
+        .eq("id", report.inspection_id)
+        .maybeSingle()
+    : { data: null };
+
+  const currentReadings = extractReadings(report.content, inspection?.readings);
+  const editedReadings = parseEditedReportReadings(report.method, fd, currentReadings);
+  const reportDateRaw = text(fd, "report_date");
+  const reportDate =
+    reportDateRaw && /^\d{4}-\d{2}-\d{2}$/.test(reportDateRaw)
+      ? reportDateRaw
+      : report.report_date;
+
+  const existingObj =
+    report.content && typeof report.content === "object" && !Array.isArray(report.content)
+      ? (report.content as Record<string, unknown>)
+      : {};
+  const observations =
+    typeof existingObj.observations === "string"
+      ? existingObj.observations
+      : inspection?.observations ?? null;
+  const submittedAt =
+    typeof existingObj.submittedAt === "string"
+      ? existingObj.submittedAt
+      : inspection?.submitted_at ?? null;
+
+  const updatedContent = buildReportContent(editedReadings, observations, submittedAt);
+
+  if (report.inspection_id && supportedMethod(report.method)) {
+    const newMissing = missingFields(report.method, editedReadings);
+    const syncClient = getServiceClient() ?? supabase;
+    await syncClient
+      .from("inspections")
+      .update({ missing_fields: newMissing })
+      .eq("id", report.inspection_id);
+  }
+
+  const { error } = await supabase
+    .from("reports")
+    .update({
+      content: updatedContent,
+      report_date: reportDate,
+    })
+    .eq("id", report.id);
+
+  if (error) redirectError(path, error.message);
+
+  revalidateReportPaths(report.id, report.job_id);
+  redirect(`${path}?saved=edited`);
 }
 
 export async function sendReportForReview(reportId: string) {
