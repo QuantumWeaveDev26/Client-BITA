@@ -45,27 +45,27 @@ export default async function EnquiriesPage({
             </option>
           ))}
         </Select>
-        <button className="col-span-2 rounded-md border border-neutral-300 py-2 text-sm font-semibold hover:bg-neutral-100">
+        <button className="col-span-2 rounded-md border border-line py-2 text-sm font-semibold hover:bg-side">
           Filter
         </button>
       </form>
-      {error && <p className="text-sm text-red-700">{error.message}</p>}
-      <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white">
+      {error && <p className="text-sm text-ink">{error.message}</p>}
+      <ul className="divide-y divide-line rounded-xl border border-line bg-white">
         {enquiries?.map((e) => (
           <li key={e.id}>
-            <Link href={`/enquiries/${e.id}`} className="block px-4 py-3 hover:bg-neutral-50">
+            <Link href={`/enquiries/${e.id}`} className="block px-4 py-3 hover:bg-side">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{e.subject || "(no subject)"}</span>
                 <Badge>{SOURCE_LABEL[e.source]}</Badge>
                 <Badge>{STATUS_LABEL[e.status]}</Badge>
               </div>
-              <div className="mt-1 text-xs text-neutral-500">
+              <div className="mt-1 text-xs text-ink-3">
                 {e.customers?.name ?? e.from_name ?? e.from_address ?? "Unknown sender"} · {formatIST(e.received_at)}
               </div>
             </Link>
           </li>
         ))}
-        {enquiries?.length === 0 && <li className="px-4 py-6 text-sm text-neutral-500">No enquiries found.</li>}
+        {enquiries?.length === 0 && <li className="px-4 py-6 text-sm text-ink-3">No enquiries found.</li>}
       </ul>
     </>
   );
