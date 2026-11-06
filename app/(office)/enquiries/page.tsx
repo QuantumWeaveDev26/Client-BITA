@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge, ButtonLink, PageHeader, Select } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { Constants, type Enums } from "@/lib/db/types";
 import { formatIST, SOURCE_LABEL, STATUS_LABEL } from "./labels";
 
@@ -12,7 +12,7 @@ export default async function EnquiriesPage({
   searchParams: Promise<{ status?: string; source?: string }>;
 }) {
   const { status, source } = await searchParams;
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
 
   let query = supabase
     .from("enquiries")

@@ -191,6 +191,64 @@ describe("file storage", () => {
   });
 });
 
+describe("technician logins", () => {
+  const TECH = "00000000-0000-0000-0000-00000000000e";
+  const TECH_PERSON = "10000000-0000-0000-0000-00000000000e";
+  const MY_JOB = "30000000-0000-0000-0000-0000000000a1";
+  const OTHER_JOB = "30000000-0000-0000-0000-0000000000a2";
+
+  beforeAll(async () => {
+    await db.exec(`
+      insert into auth.users (id) values ('${TECH}');
+      insert into people (id, full_name, user_id, roles) values ('${TECH_PERSON}', 'Test Field Tech', '${TECH}', '{technician}');
+      insert into jobs (id, customer_id) values
+        ('${MY_JOB}', '20000000-0000-0000-0000-000000000001'),
+        ('${OTHER_JOB}', '20000000-0000-0000-0000-000000000001');
+      insert into assignments (job_id, person_id, work_date) values ('${MY_JOB}', '${TECH_PERSON}', current_date);
+      insert into invoices (job_id, kind, zoho_id, total) values ('${MY_JOB}', 'proforma', 'Z-T1', 5000);
+      insert into quotations (ref_no, customer_id) values ('T-QT', '20000000-0000-0000-0000-000000000001');
+    `);
+  });
+
+  it("sees only the jobs they are assigned to", async () => {
+    const r = await as<{ id: string }>(TECH, "select id from jobs");
+    expect(r.rows.map((x) => x.id)).toEqual([MY_JOB]);
+  });
+
+  it("never sees invoices, quotations or enquiries", async () => {
+    for (const table of ["invoices", "quotations", "quotation_items", "enquiries", "audit_log"]) {
+      const r = await as(TECH, `select * from ${table}`);
+      expect(r.rows, table).toHaveLength(0);
+    }
+  });
+
+  it("can enter field data only for their own job", async () => {
+    await as(TECH, `insert into inspections (job_id, method, submitted_by) values ($1, 'UT', $2)`, [MY_JOB, TECH_PERSON]);
+    await expect(
+      as(TECH, `insert into inspections (job_id, method, submitted_by) values ($1, 'UT', $2)`, [OTHER_JOB, TECH_PERSON]),
+    ).rejects.toThrow();
+  });
+
+  it("can acknowledge an assignment but not move it", async () => {
+    const ok = await as(TECH, "update assignments set acknowledged_at = now() where job_id = $1 returning id", [MY_JOB]);
+    expect(ok.rows).toHaveLength(1);
+    await expect(as(TECH, "update assignments set work_date = current_date + 7 where job_id = $1", [MY_JOB])).rejects.toThrow(
+      /only acknowledge or complete/,
+    );
+  });
+
+  it("can upload photos only under their own job's folder", async () => {
+    await as(TECH, `insert into storage.objects (bucket_id, name) values ('documents', 'jobs/${MY_JOB}/photo.jpg')`);
+    await expect(
+      as(TECH, `insert into storage.objects (bucket_id, name) values ('documents', 'jobs/${OTHER_JOB}/photo.jpg')`),
+    ).rejects.toThrow();
+  });
+
+  it("is not treated as office staff", async () => {
+    await expect(as(TECH, "insert into customers (name) values ('Tech Added')")).rejects.toThrow();
+  });
+});
+
 describe("quotations", () => {
   it("can be approved only by management", async () => {
     await expect(

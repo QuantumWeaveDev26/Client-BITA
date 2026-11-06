@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Button, ButtonLink, Card, ErrorNote, Field, PageHeader, Select } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { Constants } from "@/lib/db/types";
 import { linkCustomer, setStatus } from "../actions";
 import { CustomerSelect } from "../customer-select";
@@ -16,7 +16,7 @@ export default async function EnquiryPage({
 }) {
   const { id } = await params;
   const { error } = await searchParams;
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
 
   const { data: enquiry } = await supabase.from("enquiries").select("*, customers(id, name)").eq("id", id).maybeSingle();
   if (!enquiry) notFound();

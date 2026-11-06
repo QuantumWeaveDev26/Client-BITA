@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Button, ErrorNote, Field, Input, PageHeader, Select, Textarea } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { createEnquiry } from "../actions";
 import { CustomerSelect } from "../customer-select";
 
@@ -10,7 +10,7 @@ export const metadata = { title: "New enquiry – BITA" };
 // once mailbox access is set up; this form also covers an email entered by hand.
 export default async function NewEnquiryPage({ searchParams }: { searchParams: Promise<{ error?: string }> }) {
   const { error } = await searchParams;
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const { data: customers } = await supabase.from("customers").select("id, name").order("name");
 
   return (

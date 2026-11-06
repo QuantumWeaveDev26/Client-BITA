@@ -52,8 +52,6 @@ export type Database = {
           created_at: string
           id: string
           job_id: string
-          link_expires_at: string | null
-          link_token_hash: string | null
           notes: string | null
           notified_at: string | null
           person_id: string
@@ -65,8 +63,6 @@ export type Database = {
           created_at?: string
           id?: string
           job_id: string
-          link_expires_at?: string | null
-          link_token_hash?: string | null
           notes?: string | null
           notified_at?: string | null
           person_id: string
@@ -78,8 +74,6 @@ export type Database = {
           created_at?: string
           id?: string
           job_id?: string
-          link_expires_at?: string | null
-          link_token_hash?: string | null
           notes?: string | null
           notified_at?: string | null
           person_id?: string

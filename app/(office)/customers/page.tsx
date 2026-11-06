@@ -1,12 +1,12 @@
 import Link from "next/link";
 import { Badge, ButtonLink, Input, PageHeader } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 
 export const metadata = { title: "Customers – BITA" };
 
 export default async function CustomersPage({ searchParams }: { searchParams: Promise<{ q?: string }> }) {
   const { q } = await searchParams;
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
 
   let query = supabase.from("customers").select("id, name, code, gstin, uses_proforma, customer_contacts(count)").order("name");
   // Commas and brackets have a meaning in the filter syntax, so they are dropped from the search text.

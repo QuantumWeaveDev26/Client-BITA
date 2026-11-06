@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import type { Enums } from "@/lib/db/types";
 import { friendlyError, text } from "@/lib/forms";
 
 export async function createEnquiry(fd: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const customerId = text(fd, "customer_id");
   const receivedAt = text(fd, "received_at");
   const { data, error } = await supabase
@@ -29,7 +29,7 @@ export async function createEnquiry(fd: FormData) {
 }
 
 export async function linkCustomer(enquiryId: string, fd: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const customerId = text(fd, "customer_id");
   const { error } = await supabase
     .from("enquiries")
@@ -40,7 +40,7 @@ export async function linkCustomer(enquiryId: string, fd: FormData) {
 }
 
 export async function setStatus(enquiryId: string, fd: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const { error } = await supabase
     .from("enquiries")
     .update({ status: text(fd, "status") as Enums<"enquiry_status"> })

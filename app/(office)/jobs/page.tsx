@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Badge, ButtonLink, Input, PageHeader, Select } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { Constants, type Enums } from "@/lib/db/types";
 import { JOB_STATUS_LABEL, METHOD_LABEL } from "./labels";
 
@@ -8,7 +8,7 @@ export const metadata = { title: "Jobs – BITA" };
 
 export default async function JobsPage({ searchParams }: { searchParams: Promise<{ q?: string; status?: string }> }) {
   const { q, status } = await searchParams;
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
 
   let query = supabase
     .from("jobs")

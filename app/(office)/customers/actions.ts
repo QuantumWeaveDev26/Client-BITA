@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { checked, friendlyError, text } from "@/lib/forms";
 
 function customerFields(fd: FormData) {
@@ -19,14 +19,14 @@ function customerFields(fd: FormData) {
 }
 
 export async function createCustomer(fd: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const { data, error } = await supabase.from("customers").insert(customerFields(fd)).select("id").single();
   if (error) redirect("/customers/new?error=" + encodeURIComponent(friendlyError(error.message)));
   redirect(`/customers/${data.id}`);
 }
 
 export async function updateCustomer(id: string, fd: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const { error } = await supabase.from("customers").update(customerFields(fd)).eq("id", id);
   if (error) redirect(`/customers/${id}?error=` + encodeURIComponent(friendlyError(error.message)));
   revalidatePath(`/customers/${id}`);
@@ -45,21 +45,21 @@ function contactFields(fd: FormData) {
 }
 
 export async function addContact(customerId: string, fd: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const { error } = await supabase.from("customer_contacts").insert({ customer_id: customerId, ...contactFields(fd) });
   if (error) redirect(`/customers/${customerId}?error=` + encodeURIComponent(friendlyError(error.message)));
   revalidatePath(`/customers/${customerId}`);
 }
 
 export async function updateContact(customerId: string, contactId: string, fd: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const { error } = await supabase.from("customer_contacts").update(contactFields(fd)).eq("id", contactId);
   if (error) redirect(`/customers/${customerId}?error=` + encodeURIComponent(friendlyError(error.message)));
   revalidatePath(`/customers/${customerId}`);
 }
 
 export async function deleteContact(customerId: string, contactId: string) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const { error } = await supabase.from("customer_contacts").delete().eq("id", contactId);
   if (error) redirect(`/customers/${customerId}?error=` + encodeURIComponent(friendlyError(error.message)));
   revalidatePath(`/customers/${customerId}`);

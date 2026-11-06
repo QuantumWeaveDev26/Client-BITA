@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { signOut } from "../(auth)/login/actions";
 
 // Menu for every stage 1 screen. Pages not built yet show the "not found" page.
@@ -14,7 +14,7 @@ const NAV = [
 ];
 
 export default async function OfficeLayout({ children }: { children: ReactNode }) {
-  const { person } = await requireUser();
+  const { person } = await requireStaff();
 
   return (
     <div className="min-h-screen bg-neutral-50">
