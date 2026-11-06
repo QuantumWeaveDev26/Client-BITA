@@ -33,8 +33,8 @@ export default async function NewEnquiryPage({ searchParams }: { searchParams: P
         <Field label="Customer" hint="Pick an existing customer if you know who it is">
           <CustomerSelect customers={customers ?? []} />
         </Field>
-        <p className="text-xs text-neutral-500">
-          New customer? <Link href="/customers/new" className="text-red-700 underline">Add the customer first</Link>.
+        <p className="text-xs text-ink-3">
+          New customer? <Link href="/customers/new" className="text-ink underline">Add the customer first</Link>.
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <Field label="Caller / sender name">

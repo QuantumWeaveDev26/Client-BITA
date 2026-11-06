@@ -63,7 +63,7 @@ export function JobForm({
         <Textarea name="scope" defaultValue={job?.scope ?? defaults?.scope ?? ""} placeholder="Components, quantity, standard…" />
       </Field>
       <fieldset>
-        <legend className="text-sm font-medium text-neutral-700">Test methods</legend>
+        <legend className="text-sm font-medium text-ink-2">Test methods</legend>
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
           {Constants.public.Enums.test_method.map((m) => (
             <label key={m} className="flex items-center gap-2 text-sm">

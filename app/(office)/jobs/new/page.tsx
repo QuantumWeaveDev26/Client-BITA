@@ -22,7 +22,7 @@ export default async function NewJobPage({ searchParams }: { searchParams: Promi
     <>
       <PageHeader title="New job" />
       <ErrorNote message={error} />
-      <p className="mb-4 text-sm text-neutral-600">The Job ID is given automatically when you save.</p>
+      <p className="mb-4 text-sm text-ink-2">The Job ID is given automatically when you save.</p>
       <JobForm action={createJob} defaults={defaults} submitLabel="Create job" {...options} />
     </>
   );

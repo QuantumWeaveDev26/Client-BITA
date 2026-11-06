@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge, Button, Card, Checkbox, ErrorNote, Field, Input, PageHeader, SecondaryButton } from "@/components/ui";
+import { Badge, Button, Card, Checkbox, ErrorNote, Field, Input, PageHeader, SecondaryButton, SavedNote } from "@/components/ui";
 import { requireStaff } from "@/lib/auth";
 import { addContact, deleteContact, updateContact, updateCustomer } from "../actions";
 import { CustomerForm } from "../customer-form";
@@ -33,7 +33,7 @@ export default async function CustomerPage({
     <>
       <PageHeader title={customer.name} />
       <ErrorNote message={error} />
-      {saved && <p className="mb-4 rounded-md bg-green-50 px-3 py-2 text-sm text-green-800">Saved.</p>}
+      {saved && <SavedNote />}
 
       <div className="grid gap-6 lg:grid-cols-2">
         <Card>
@@ -46,12 +46,12 @@ export default async function CustomerPage({
             <h2 className="mb-3 font-semibold">Contacts</h2>
             <ul className="space-y-4">
               {contacts?.map((c) => (
-                <li key={c.id} className="border-b border-neutral-100 pb-4 last:border-0">
+                <li key={c.id} className="border-b border-line-2 pb-4 last:border-0">
                   <details>
                     <summary className="cursor-pointer">
                       <span className="font-medium">{c.name}</span>{" "}
                       {c.receives_reports && <Badge>Reports</Badge>} {c.receives_invoices && <Badge>Invoices</Badge>}
-                      <div className="text-xs text-neutral-500">
+                      <div className="text-xs text-ink-3">
                         {[c.mobile, c.email].filter(Boolean).join(" · ") || "No phone or email"}
                       </div>
                     </summary>
@@ -65,10 +65,10 @@ export default async function CustomerPage({
                   </details>
                 </li>
               ))}
-              {contacts?.length === 0 && <li className="text-sm text-neutral-500">No contacts yet.</li>}
+              {contacts?.length === 0 && <li className="text-sm text-ink-3">No contacts yet.</li>}
             </ul>
             <details className="mt-4">
-              <summary className="cursor-pointer text-sm font-semibold text-red-700">Add a contact</summary>
+              <summary className="cursor-pointer text-sm font-semibold text-ink">Add a contact</summary>
               <form action={addContact.bind(null, id)} className="mt-3 space-y-3">
                 <ContactFields />
                 <Button type="submit">Add contact</Button>
@@ -81,15 +81,15 @@ export default async function CustomerPage({
             <ul className="space-y-2 text-sm">
               {enquiries?.map((e) => (
                 <li key={e.id}>
-                  <Link href={`/enquiries/${e.id}`} className="hover:text-red-700">
+                  <Link href={`/enquiries/${e.id}`} className="hover:text-ink">
                     {e.subject || "(no subject)"}
                   </Link>{" "}
-                  <span className="text-xs text-neutral-500">
+                  <span className="text-xs text-ink-3">
                     {e.source} · {e.status}
                   </span>
                 </li>
               ))}
-              {enquiries?.length === 0 && <li className="text-neutral-500">No enquiries yet.</li>}
+              {enquiries?.length === 0 && <li className="text-ink-3">No enquiries yet.</li>}
             </ul>
           </Card>
         </div>

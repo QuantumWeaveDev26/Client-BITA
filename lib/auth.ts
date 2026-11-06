@@ -36,6 +36,6 @@ export async function requireStaff() {
 export async function requireTechnician() {
   const ctx = await requireUser();
   if (!ctx.person) redirect("/login");
-  if (!ctx.person.roles.includes("technician")) redirect("/enquiries");
+  if (!ctx.person.roles.includes("technician")) redirect("/");
   return { ...ctx, person: ctx.person };
 }
