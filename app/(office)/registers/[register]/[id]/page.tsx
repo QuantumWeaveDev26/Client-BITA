@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
-import { Card, ErrorNote, PageHeader } from "@/components/ui";
+import { Button, Card, ErrorNote, Field, Input, PageHeader } from "@/components/ui";
 import { requireUser } from "@/lib/auth";
 import { saveRegister } from "../../actions";
 import { calibrationStatus, isId, isRegister, TITLES } from "../../fields";
@@ -48,6 +48,12 @@ export default async function RegisterDetail({ params, searchParams }: {
       </div>
       {register === "qualifications" && !people?.length ? <p className="text-sm">Add a person in the <Link href="/registers?tab=people" className="text-red-700 underline">people register</Link> first.</p>
         : <RegisterForm register={register} record={record} people={people ?? []} canEdit={canEdit} action={saveRegister.bind(null, register, id)} />}
+      {canEdit && record && register !== "people" && <form action={`/registers/${register}/${id}/certificate`} method="post" encType="multipart/form-data" className="mt-6 space-y-3 border-t border-neutral-200 pt-4">
+        <Field label={"certificate_path" in record && record.certificate_path ? "Replace certificate copy" : "Certificate copy"} hint="PDF, JPEG or PNG, up to 5 MB. Upload separately after saving details. The current copy stays linked if the upload fails.">
+          <Input name="certificate" type="file" required accept="application/pdf,image/jpeg,image/png" />
+        </Field>
+        <Button type="submit">Upload certificate</Button>
+      </form>}
     </Card>}
   </>;
 }

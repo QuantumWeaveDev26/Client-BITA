@@ -17,12 +17,7 @@ export function RegisterForm({ register, record, people, action, canEdit }: {
         {register === "people" ? <PersonFields person={record as Person | undefined} />
           : register === "qualifications" ? <QualificationFields qualification={record as Qualification | undefined} people={people} />
             : <EquipmentFields equipment={record as Equipment | undefined} />}
-        {register !== "people" && canEdit && (
-          <Field label={record && "certificate_path" in record && record.certificate_path ? "Replace certificate copy" : "Certificate copy"}
-            hint="PDF, JPEG or PNG, up to 5 MB. Leave blank to keep the current copy. Details are saved before the upload; an upload failure can be retried here.">
-            <Input name="certificate" type="file" accept="application/pdf,image/jpeg,image/png" />
-          </Field>
-        )}
+        {register !== "people" && !record && canEdit && <p className="text-sm text-neutral-600">Save the record, then attach its certificate copy.</p>}
         {canEdit && <Button type="submit">{record ? "Save changes" : "Add record"}</Button>}
       </fieldset>
     </form>

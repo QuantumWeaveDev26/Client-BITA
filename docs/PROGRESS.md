@@ -20,7 +20,7 @@ Everyone adds a log entry at the end of every session (newest at the top of the 
 | WhatsApp intake + technician messages (R3, X1) | Naveen | Not started | | Needs BITA's WhatsApp Business number |
 | Financial reports from Zoho (X4) | Naveen | Not started | | Needs Zoho access |
 | Submission checks + correction history view (X2, X3) | Naveen | Not started | | Database side done in setup PR |
-| Qualification + equipment registers (R19–R20, R29–R31) | Naveen | In review | feature/naveen-registers | Registers and private certificates built; 36 tests, lint, typecheck, build and 375 px fixture checks pass; shared upload/access integration pending Orion |
+| Qualification + equipment registers (R19–R20, R29–R31) | Naveen | In review | PR 6, feature/naveen-registers | Registers and private certificate copies built; 44 tests, build, lint/typecheck and 375 px fixture checks pass |
 | Glossary | Krishna | Not started | | |
 | Test data | Krishna | Not started | | |
 | Client inputs tracker | Krishna | Not started | | See `docs/CLIENT_INPUTS.md` |
@@ -66,6 +66,13 @@ Files changed: <main files or folders>
 Next: <the next concrete step>
 Blockers / questions: <or "none">
 ```
+
+### 2026-11-06 11:06 – Naveen – Codex
+Task: T4 qualification and equipment registers, PR 6
+Done: Certificate uploads now use a separate management-only route with origin checks and a bounded 5 MB multipart body, so they do not depend on the shared server-action limit. Save details first, then attach a certificate; previous copies remain linked if upload fails. All 44 tests and production build pass; eight fake-data screens checked at 375/1280 px without overflow.
+Files changed: app/(office)/registers/, docs/PROGRESS.md, docs/HANDOFF.md
+Next: Review PR 6. Apollo owns T5 and has the register handoff. Orion will switch register reads to requireStaff when the technician-access stack merges; current requireUser retained at his request.
+Blockers / questions: No upload configuration dependency remains. Live authenticated certificate upload still needs click-through with fake data.
 
 ### 2026-11-06 11:00 – Naveen – Codex
 Task: T4 qualification and equipment registers

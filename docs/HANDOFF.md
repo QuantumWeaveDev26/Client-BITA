@@ -107,6 +107,18 @@ Decisions made in this session: <or "none">
 
 ## Handoff entries (newest first)
 
+### 2026-11-06 11:06 – Naveen – registers – from Codex to review
+Branch: feature/naveen-registers (PR 6, stacked on feature/naveen-login-customers-enquiries)
+Task: T4 qualification and equipment registers
+Stopped at: Implementation and 44 tests complete. Production build, lint/typecheck and eight fake-data screens at 375/1280 px checked. Certificate attachment uses separate POST route with origin and management checks, bounded multipart body, private documents storage; GET authorizes record and signs for 60 seconds. No schema or dependency changes.
+Next step: Review PR 6 and click through a live logged-in upload with fake data. Orion will integrate requireStaff from PR 5 when the stack merges; keep requireUser until then per his inbox instruction. Apollo has T5 handoff.
+Files touched: app/(office)/registers/, docs/PROGRESS.md, docs/HANDOFF.md
+How to run / test: npm test; npm run build; npm run typecheck after build completes. /registers?tab=people|qualifications|equipment; /registers/<register>/new or /<id>. Save details, then use Upload certificate. Port 3002.
+Known problems: Live authenticated upload not clicked through. No shared upload-limit dependency remains. Rebase onto main and change PR base when PR 3 merges.
+Decisions made in this session: none
+
+
+
 ### 2026-11-06 11:00 – Naveen – registers – from Codex to review
 Branch: feature/naveen-registers (pushed at step end; stacked on feature/naveen-login-customers-enquiries)
 Task: T4 qualification and equipment registers

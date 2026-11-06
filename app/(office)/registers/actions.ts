@@ -5,10 +5,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/auth";
 import { friendlyError } from "@/lib/forms";
-import {
-  CERTIFICATE_TYPES, certificateError, equipmentFields, isId, isRegister,
-  personFields, qualificationFields, type Register,
-} from "./fields";
+import { equipmentFields, isId, isRegister, personFields, qualificationFields, type Register } from "./fields";
 
 function fail(path: string, message: string): never {
   redirect(`${path}?error=${encodeURIComponent(message)}`);
@@ -28,15 +25,6 @@ export async function saveRegister(register: Register, recordId: string, fd: For
   const isNew = recordId === "new";
   const id = isNew ? randomUUID() : recordId;
 
-  // Check authorization before accepting file bytes or performing a write. RLS remains the final guard.
-  const certificate = fd.get("certificate");
-  const file = certificate instanceof File && certificate.size > 0 ? certificate : null;
-  if (file && register !== "people") {
-    const problem = certificateError(file);
-    if (problem) fail(path, problem);
-  }
-
-  let certificateOwner = id;
   let payload;
   try {
     payload = register === "people" ? personFields(fd)
@@ -62,7 +50,6 @@ export async function saveRegister(register: Register, recordId: string, fd: For
       if (error || !existing) fail(path, error ? errorMessage(error) : "Qualification not found.");
       if (fields.person_id !== existing.person_id) fail(path, "A qualification stays with its original person. Add a new qualification for another person.");
     }
-    certificateOwner = fields.person_id;
     const query = isNew ? supabase.from("qualifications").insert({ ...fields, id })
       : supabase.from("qualifications").update(fields).eq("id", id);
     const { data, error } = await query.select("id").single();
@@ -77,17 +64,5 @@ export async function saveRegister(register: Register, recordId: string, fd: For
 
   const savedPath = `/registers/${register}/${id}`;
   revalidatePath("/registers", "layout");
-  if (file && register !== "people") {
-    const folder = register === "qualifications" ? "certificates" : "calibration";
-    const extension = CERTIFICATE_TYPES[file.type as keyof typeof CERTIFICATE_TYPES];
-    const storagePath = `${folder}/${certificateOwner}/${randomUUID()}.${extension}`;
-    const { error: uploadError } = await supabase.storage.from("documents").upload(storagePath, file, { contentType: file.type, upsert: false });
-    if (uploadError) fail(savedPath, "Details saved, but the certificate upload failed. Please try uploading again.");
-    // Existing certificate stays linked until the new copy has uploaded successfully.
-    const { data, error } = await supabase.from(register).update({ certificate_path: storagePath }).eq("id", id)
-      .select("id").single();
-    if (error || !data) fail(savedPath, "Details saved, but the certificate could not be linked. Please try again.");
-    revalidatePath("/registers", "layout");
-  }
   redirect(`${savedPath}?saved=1`);
 }

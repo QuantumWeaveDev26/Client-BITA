@@ -47,20 +47,21 @@ describe("management-only register saves", () => {
     expect(mocks.revalidatePath).not.toHaveBeenCalled();
   });
 
-  it("reports a partial save and preserves the existing certificate link when upload fails", async () => {
-    const { query, upload } = database();
-    upload.mockResolvedValue({ error: { message: "storage unavailable" } });
-    await expect(saveRegister("equipment", EQUIPMENT, equipmentForm(true))).rejects.toThrow("Details%20saved%2C%20but%20the%20certificate%20upload%20failed");
+  it("saves details without changing certificate links or accepting a forged storage path", async () => {
+    const { query, supabase } = database();
+    const fd = equipmentForm();
+    fd.set("certificate_path", "calibration/other/certificate.pdf");
+    await expect(saveRegister("equipment", EQUIPMENT, fd)).rejects.toThrow(`REDIRECT /registers/equipment/${EQUIPMENT}?saved=1`);
     expect(query.update).toHaveBeenCalledTimes(1);
     expect(query.update.mock.calls[0][0]).not.toHaveProperty("certificate_path");
+    expect(supabase.storage.from).not.toHaveBeenCalled();
   });
 
-  it("uploads to the equipment's own private directory before linking the certificate", async () => {
-    const { query, upload, supabase } = database();
-    await expect(saveRegister("equipment", EQUIPMENT, equipmentForm(true))).rejects.toThrow(`REDIRECT /registers/equipment/${EQUIPMENT}?saved=1`);
-    expect(supabase.storage.from).toHaveBeenCalledWith("documents");
-    expect(upload.mock.calls[0][0]).toMatch(new RegExp(`^calibration/${EQUIPMENT}/[a-f0-9-]+\\.pdf$`));
-    expect(query.update.mock.calls[1][0]).toEqual({ certificate_path: upload.mock.calls[0][0] });
+  it("keeps an existing qualification with its original person", async () => {
+    const { query } = database();
+    const fd = new FormData(); fd.set("person_id", EQUIPMENT); fd.set("method", "UT"); fd.set("level", "II");
+    await expect(saveRegister("qualifications", EQUIPMENT, fd)).rejects.toThrow("original%20person");
+    expect(query.update).not.toHaveBeenCalled();
   });
 
   it("prevents accidental self-deactivation while editing roles", async () => {

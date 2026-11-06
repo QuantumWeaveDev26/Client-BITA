@@ -8,11 +8,13 @@ import type { Tables } from "@/lib/db/types";
 const mocks = vi.hoisted(() => ({ requireUser: vi.fn() }));
 vi.mock("@/lib/auth", () => ({ requireUser: mocks.requireUser }));
 vi.mock("@/components/ui", async () => await import("../../../components/ui"));
+vi.mock("./actions", () => ({ saveRegister: vi.fn(async () => {}) }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => <a href={href} {...props}>{children}</a> }));
 vi.stubGlobal("React", React);
 
 import RegistersPage from "./page";
 import { RegisterForm } from "./register-form";
+import RegisterDetail from "./[register]/[id]/page";
 
 const person: Tables<"people"> = {
   id: "10000000-0000-0000-0000-000000000001", full_name: "FAKE TEST Technician", initials: "TT", position: "Test Inspector",
@@ -27,7 +29,15 @@ const equipment: Tables<"equipment"> = {
 
 function setup(roles = ["management"], failure = false) {
   const rows = { people: [person], qualification_status: [{ ...qualification, is_expired: true }], equipment: [equipment] };
-  const from = vi.fn((table: keyof typeof rows) => ({ select: () => ({ order: () => Promise.resolve({ data: failure ? null : rows[table], error: failure ? { message: "Test read failure" } : null }) }) }));
+  const from = vi.fn((table: keyof typeof rows | "qualifications") => {
+    const data = table === "qualifications" ? [qualification] : rows[table];
+    const query = {
+      select: () => query, eq: () => query,
+      order: () => Promise.resolve({ data: failure ? null : data, error: failure ? { message: "Test read failure" } : null }),
+      maybeSingle: () => Promise.resolve({ data: data[0], error: null }),
+    };
+    return query;
+  });
   mocks.requireUser.mockResolvedValue({ person: { roles }, supabase: { from } });
 }
 
@@ -65,8 +75,19 @@ describe("register screens", () => {
       const html = renderToStaticMarkup(<RegisterForm register={register} people={[person]} action={async () => {}} canEdit />);
       expect(html).toContain("Add record");
       expect(html).not.toContain("<table");
-      if (register !== "people") expect(html).toContain("application/pdf,image/jpeg,image/png");
+      if (register !== "people") expect(html).toContain("Save the record, then attach its certificate copy.");
       exportScreen(`${register}-form`, html);
+    }
+  });
+
+  it("uses a separate private multipart upload form on existing records", async () => {
+    for (const [register, id] of [["qualifications", qualification.id], ["equipment", equipment.id]]) {
+      const html = renderToStaticMarkup(await RegisterDetail({ params: Promise.resolve({ register, id }), searchParams: Promise.resolve({}) }));
+      expect(html).toContain(`action="/registers/${register}/${id}/certificate"`);
+      expect(html).toContain('method="post"');
+      expect(html).toContain('encType="multipart/form-data"');
+      expect(html).toContain("Upload certificate");
+      exportScreen(`${register}-detail`, html);
     }
   });
 
