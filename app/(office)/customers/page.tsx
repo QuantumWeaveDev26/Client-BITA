@@ -20,23 +20,23 @@ export default async function CustomersPage({ searchParams }: { searchParams: Pr
       <form className="mb-4">
         <Input name="q" placeholder="Search name, code or GSTIN" defaultValue={q} />
       </form>
-      {error && <p className="text-sm text-red-700">{error.message}</p>}
-      <ul className="divide-y divide-neutral-200 rounded-lg border border-neutral-200 bg-white">
+      {error && <p className="text-sm text-ink">{error.message}</p>}
+      <ul className="divide-y divide-line rounded-xl border border-line bg-white">
         {customers?.map((c) => (
           <li key={c.id}>
-            <Link href={`/customers/${c.id}`} className="block px-4 py-3 hover:bg-neutral-50">
+            <Link href={`/customers/${c.id}`} className="block px-4 py-3 hover:bg-side">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-medium">{c.name}</span>
                 {c.code && <Badge>{c.code}</Badge>}
                 {c.uses_proforma && <Badge>Proforma</Badge>}
               </div>
-              <div className="mt-1 text-xs text-neutral-500">
+              <div className="mt-1 text-xs text-ink-3">
                 {c.gstin ?? "GSTIN not given"} · {c.customer_contacts[0]?.count ?? 0} contacts
               </div>
             </Link>
           </li>
         ))}
-        {customers?.length === 0 && <li className="px-4 py-6 text-sm text-neutral-500">No customers found.</li>}
+        {customers?.length === 0 && <li className="px-4 py-6 text-sm text-ink-3">No customers found.</li>}
       </ul>
     </>
   );

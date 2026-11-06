@@ -1,47 +1,37 @@
-import Link from "next/link";
 import type { ReactNode } from "react";
+import { AppShell, type NavCounts } from "@/components/app-shell";
 import { requireStaff } from "@/lib/auth";
-import { signOut } from "../(auth)/login/actions";
-
-// Menu for every stage 1 screen. Pages not built yet show the "not found" page.
-const NAV = [
-  { href: "/dashboard", label: "Dashboard" },
-  { href: "/enquiries", label: "Enquiries" },
-  { href: "/customers", label: "Customers" },
-  { href: "/quotations", label: "Quotations" },
-  { href: "/jobs", label: "Jobs" },
-  { href: "/registers", label: "Registers" },
-];
 
 export default async function OfficeLayout({ children }: { children: ReactNode }) {
-  const { person } = await requireStaff();
+  const { supabase, person } = await requireStaff();
+
+  if (!person) {
+    return (
+      <main className="mx-auto max-w-md px-4 py-16">
+        <p className="rounded-lg border border-wait/30 bg-wait/5 px-3.5 py-2.5 text-[13.5px] text-ink">
+          Your login works, but it isn&apos;t set up as BITA staff yet. Ask Naveen to add you.
+        </p>
+      </main>
+    );
+  }
+
+  // Menu counts: what is waiting in each area.
+  const [enquiries, quotations, jobs, reports] = await Promise.all([
+    supabase.from("enquiries").select("id", { count: "exact", head: true }).in("status", ["new", "linked"]),
+    supabase.from("quotations").select("id", { count: "exact", head: true }).eq("status", "draft"),
+    supabase.from("jobs").select("id", { count: "exact", head: true }).neq("status", "closed"),
+    supabase.from("reports").select("id", { count: "exact", head: true }).in("status", ["draft", "in_review"]),
+  ]);
+  const counts: NavCounts = {
+    enquiries: enquiries.count ?? 0,
+    quotations: quotations.count ?? 0,
+    jobs: jobs.count ?? 0,
+    reports: reports.count ?? 0,
+  };
 
   return (
-    <div className="min-h-screen bg-neutral-50">
-      <header className="border-b border-neutral-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-3">
-          <span className="text-sm font-bold text-red-700">BITA</span>
-          <nav className="flex gap-4 overflow-x-auto text-sm font-medium">
-            {NAV.map((n) => (
-              <Link key={n.href} href={n.href} className="whitespace-nowrap hover:text-red-700">
-                {n.label}
-              </Link>
-            ))}
-          </nav>
-          <form action={signOut}>
-            <button className="text-sm text-neutral-600 hover:text-red-700">Log out</button>
-          </form>
-        </div>
-      </header>
-      <main className="mx-auto max-w-5xl px-4 py-6">
-        {person ? (
-          children
-        ) : (
-          <p className="rounded-md bg-amber-50 px-3 py-2 text-sm text-amber-900">
-            Your login works, but it is not set up as BITA staff yet. Ask Naveen to add you.
-          </p>
-        )}
-      </main>
-    </div>
+    <AppShell person={person} counts={counts}>
+      {children}
+    </AppShell>
   );
 }
