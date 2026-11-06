@@ -12,7 +12,7 @@ Everyone adds a log entry at the end of every session (newest at the top of the 
 | Customer and enquiry screens | Naveen | In review | feature/naveen-login-customers-enquiries | Login, customers with contacts, enquiries with customer link |
 | Jobs, quotations, POs, scheduling | Naveen | Not started | | |
 | Technician field form | Naveen | Not started | | |
-| Report templates + approval + PDF | Naveen | Not started | | Needs BITA samples |
+| Report templates + approval + PDF | Naveen | In review | feature/naveen-report-templates | T8a fields/templates/staff preview ready; T8 review/approval/PDF persistence is separate |
 | AI report drafting | Naveen | Not started | | |
 | Zoho Books integration | Naveen | Not started | | Needs Zoho admin access |
 | Payments, reminders, job closure | Naveen | Not started | | |
@@ -66,6 +66,20 @@ Files changed: <main files or folders>
 Next: <the next concrete step>
 Blockers / questions: <or "none">
 ```
+
+### 2026-11-06 11:54 – Naveen – Codex
+Task: T8a typed report fields and UT/MT/DPT paper templates
+Done: Typed field validation and React paper layouts preserve the source table grids, merged cells and section order. A4 print CSS, draft-only staff previews, and signature/seal rendering gated on trusted approval. All 46 tests, production build, lint/type validation pass. Six fake-data draft/approved PDFs each fit one A4 page; previews checked at 375 px with contained paper scrolling.
+Files changed: lib/reports/, templates/reports/, app/(reports)/report-preview/, docs/PROGRESS.md, docs/HANDOFF.md
+Next: Compare staff previews with the original Word documents; T7 imports the pushed field contract. T8 adds approval workflow/PDF persistence separately.
+Blockers / questions: Source Word files and real assets are not committed. Fine visual comparison with originals remains a reviewer check; A4 was explicitly confirmed.
+
+### 2026-11-06 11:48 – Naveen – Codex
+Task: T8a report field definitions and paper layouts
+Done: Added typed UT/MPT/DPT readings, MT alias, shared fields and repeated technician/item groups. missingFields returns stable scalar/dotted paths for inspections.missing_fields and validates every row. Eleven field tests pass. Orion approved the contract; pushing it early for T7.
+Files changed: lib/reports/fields.ts, lib/reports/fields.test.ts, docs/PROGRESS.md, docs/HANDOFF.md
+Next: Finish source-format paper templates, approval-gated signature slots, staff-only fake-data preview and A4 print checks.
+Blockers / questions: none for the field contract.
 
 ### 2026-11-05 18:30 – Naveen – Claude Code
 Task: BITA: Customer and enquiry screens
