@@ -107,6 +107,42 @@ Decisions made in this session: <or "none">
 
 ## Handoff entries (newest first)
 
+### 2026-11-06 11:06 – Naveen – registers – from Codex to review
+Branch: feature/naveen-registers (PR 6, stacked on feature/naveen-login-customers-enquiries)
+Task: T4 qualification and equipment registers
+Stopped at: Implementation and 44 tests complete. Production build, lint/typecheck and eight fake-data screens at 375/1280 px checked. Certificate attachment uses separate POST route with origin and management checks, bounded multipart body, private documents storage; GET authorizes record and signs for 60 seconds. No schema or dependency changes.
+Next step: Review PR 6 and click through a live logged-in upload with fake data. Orion will integrate requireStaff from PR 5 when the stack merges; keep requireUser until then per his inbox instruction. Apollo has T5 handoff.
+Files touched: app/(office)/registers/, docs/PROGRESS.md, docs/HANDOFF.md
+How to run / test: npm test; npm run build; npm run typecheck after build completes. /registers?tab=people|qualifications|equipment; /registers/<register>/new or /<id>. Save details, then use Upload certificate. Port 3002.
+Known problems: Live authenticated upload not clicked through. No shared upload-limit dependency remains. Rebase onto main and change PR base when PR 3 merges.
+Decisions made in this session: none
+
+
+
+### 2026-11-06 11:00 – Naveen – registers – from Codex to review
+Branch: feature/naveen-registers (pushed at step end; stacked on feature/naveen-login-customers-enquiries)
+Task: T4 qualification and equipment registers
+Stopped at: Registers and tests implemented. 36 tests, lint, type check, build pass; rendered fake-data screens checked at 375 and 1280 px. No schema or shared application code changed.
+Next step: Review PR, then integrate Orion's shared server-action body limit (6 MB requested) and requireStaff helper when available. Retest a logged-in upload with fake data before merge.
+Files touched: app/(office)/registers/, docs/PROGRESS.md, docs/HANDOFF.md
+How to run / test: npm test; npm run lint; npm run typecheck; npm run build. /registers?tab=people|qualifications|equipment; /registers/<register>/new or /<id>. Dev port 3002. Set T4_RENDER_DIR when running tests to export fake-data rendered HTML for visual checks.
+Known problems: 5 MB certificate upload needs Orion's 6 MB body-limit change. Pages currently use requireUser per Orion's instruction until requireStaff lands. Live authenticated uploads not yet clicked through.
+Decisions made in this session: none
+
+
+
+### 2026-11-06 10:53 – Naveen – registers – from Codex to next session
+Branch: feature/naveen-registers (push at step end)
+Task: T4 qualification and equipment registers
+Stopped at: Register list, new/detail forms, management-only actions and private certificate download route implemented. Type check and 21 tests pass.
+Next step: Finish lint/build, permission tests and phone layout check; incorporate Orion's 6 MB server-action limit from T1 branch; open stacked PR.
+Files touched: app/(office)/registers/, docs/PROGRESS.md, docs/HANDOFF.md
+How to run / test: npm test; npm run lint; npm run typecheck; npm run build; dev port 3002, /registers.
+Known problems: Shared upload limit change requested from Orion; actual logged-in upload still needs verification.
+Decisions made in this session: none
+
+
+
 ### 2026-11-05 17:30 – Naveen – whole app – from Claude Code to Naveen's next session
 Branch: feature/naveen-db-types   (pushed: yes, PR 2)
 Task: BITA: Set up repository, database and team access

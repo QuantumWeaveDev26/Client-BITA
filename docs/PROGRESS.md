@@ -20,7 +20,7 @@ Everyone adds a log entry at the end of every session (newest at the top of the 
 | WhatsApp intake + technician messages (R3, X1) | Naveen | Not started | | Needs BITA's WhatsApp Business number |
 | Financial reports from Zoho (X4) | Naveen | Not started | | Needs Zoho access |
 | Submission checks + correction history view (X2, X3) | Naveen | Not started | | Database side done in setup PR |
-| Qualification + equipment registers (R19–R20, R29–R31) | Naveen | Not started | | |
+| Qualification + equipment registers (R19–R20, R29–R31) | Naveen | In review | PR 6, feature/naveen-registers | Registers and private certificate copies built; 44 tests, build, lint/typecheck and 375 px fixture checks pass |
 | Glossary | Krishna | Not started | | |
 | Test data | Krishna | Not started | | |
 | Client inputs tracker | Krishna | Not started | | See `docs/CLIENT_INPUTS.md` |
@@ -66,6 +66,27 @@ Files changed: <main files or folders>
 Next: <the next concrete step>
 Blockers / questions: <or "none">
 ```
+
+### 2026-11-06 11:06 – Naveen – Codex
+Task: T4 qualification and equipment registers, PR 6
+Done: Certificate uploads now use a separate management-only route with origin checks and a bounded 5 MB multipart body, so they do not depend on the shared server-action limit. Save details first, then attach a certificate; previous copies remain linked if upload fails. All 44 tests and production build pass; eight fake-data screens checked at 375/1280 px without overflow.
+Files changed: app/(office)/registers/, docs/PROGRESS.md, docs/HANDOFF.md
+Next: Review PR 6. Apollo owns T5 and has the register handoff. Orion will switch register reads to requireStaff when the technician-access stack merges; current requireUser retained at his request.
+Blockers / questions: No upload configuration dependency remains. Live authenticated certificate upload still needs click-through with fake data.
+
+### 2026-11-06 11:00 – Naveen – Codex
+Task: T4 qualification and equipment registers
+Done: Verified management-only saves, RLS-denied updates, certificate directory isolation and partial-upload errors. All 36 tests, lint, type check and production build pass. Six fake-data register lists/forms checked in Chromium at 375 px and 1280 px with no overflow; screenshots inspected. Removed outdated technician job-link wording.
+Files changed: app/(office)/registers/, docs/PROGRESS.md, docs/HANDOFF.md
+Next: Review stacked PR; integrate Orion's shared upload limit and staff-only access helpers before the technician-login rollout. Live authenticated certificate upload still needs a click-through.
+Blockers / questions: Shared next.config.ts upload limit remains 1 MB until Orion raises it; 5 MB files need the requested 6 MB body limit. No shared application files, schema or dependencies changed.
+
+### 2026-11-06 10:53 – Naveen – Codex
+Task: T4 qualification and equipment registers
+Done: Added searchable people, qualification and equipment registers; management-only save actions; private certificate uploads and authorized downloads; database qualification expiry flags and India-date calibration warnings. Type check and all 21 tests pass. No shared code, schema or dependencies changed.
+Files changed: app/(office)/registers/, docs/PROGRESS.md, docs/HANDOFF.md
+Next: Finish permission and phone-layout verification, then open a PR based on the login/customers/enquiries branch.
+Blockers / questions: Orion asked to raise the shared server-action body limit to 6 MB for 5 MB certificate uploads.
 
 ### 2026-11-05 18:30 – Naveen – Claude Code
 Task: BITA: Customer and enquiry screens
