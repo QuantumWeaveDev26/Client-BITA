@@ -249,6 +249,40 @@ describe("technician logins", () => {
   });
 });
 
+describe("approval by the logged-in person only", () => {
+  const JOB = "30000000-0000-0000-0000-0000000000b1";
+  const INSP = "40000000-0000-0000-0000-0000000000b1";
+
+  beforeAll(async () => {
+    await db.exec(`
+      insert into jobs (id, customer_id) values ('${JOB}', '20000000-0000-0000-0000-000000000001');
+      insert into inspections (id, job_id, method, submitted_at) values ('${INSP}', '${JOB}', 'UT', now());
+      insert into reports (job_id, inspection_id, method, report_no, status) values ('${JOB}', '${INSP}', 'UT', 'T-ACT-1', 'in_review');
+    `);
+  });
+
+  it("does not let office staff record a reviewer as approver", async () => {
+    await expect(
+      as(OFFICE, `update reports set status = 'approved', approved_at = now(),
+                  approved_by = '10000000-0000-0000-0000-00000000000b' where report_no = 'T-ACT-1'`),
+    ).rejects.toThrow(/only as yourself/);
+  });
+
+  it("lets the reviewer approve as themselves, then freezes the report", async () => {
+    await as(REVIEWER, `update reports set status = 'approved', approved_at = now(),
+                        approved_by = '10000000-0000-0000-0000-00000000000b' where report_no = 'T-ACT-1'`);
+    await expect(
+      as(REVIEWER, `update reports set content = '{"changed": true}' where report_no = 'T-ACT-1'`),
+    ).rejects.toThrow(/cannot be edited/);
+  });
+
+  it("does not let office staff withdraw an approval", async () => {
+    await expect(
+      as(OFFICE, `update reports set status = 'returned', approved_at = null, approved_by = null where report_no = 'T-ACT-1'`),
+    ).rejects.toThrow(/Only a technical reviewer can return/);
+  });
+});
+
 describe("quotations", () => {
   it("can be approved only by management", async () => {
     await expect(

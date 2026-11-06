@@ -43,6 +43,7 @@ function menuFor(roles: readonly string[], c: NavCounts): { main: NavItem[]; rec
       records: [
         { href: "/customers", label: "Customers", icon: "customers" },
         { href: "/registers", label: "People & equipment", icon: "people" },
+        { href: "/settings/users", label: "Users & logins", icon: "people" },
       ],
     };
   }
