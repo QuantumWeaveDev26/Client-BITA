@@ -1,5 +1,5 @@
 import { ErrorNote, PageHeader } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { createJob } from "../actions";
 import { JobForm } from "../job-form";
 import { jobFormOptions } from "../options";
@@ -9,7 +9,7 @@ export const metadata = { title: "New job – BITA" };
 // Opened from an enquiry as /jobs/new?enquiry=<id>, the customer and scope are filled in.
 export default async function NewJobPage({ searchParams }: { searchParams: Promise<{ error?: string; enquiry?: string }> }) {
   const { error, enquiry: enquiryId } = await searchParams;
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const options = await jobFormOptions(supabase);
 
   let defaults: { customer_id?: string; enquiry_id?: string; scope?: string } | undefined;

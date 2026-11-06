@@ -1,8 +1,10 @@
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 
-// For every office page: the logged-in user and their BITA person record.
-// Not logged in: go to /login. Logged in but not set up as BITA staff: person is null.
+const STAFF_ROLES = ["management", "office", "reviewer"] as const;
+
+// The logged-in user and their BITA person record.
+// Not logged in: go to /login. Logged in but not set up at BITA: person is null.
 export async function requireUser() {
   const supabase = await createClient();
   const {
@@ -17,4 +19,23 @@ export async function requireUser() {
     .maybeSingle();
 
   return { supabase, user, person };
+}
+
+export function isStaff(roles: readonly string[] | undefined) {
+  return !!roles?.some((r) => (STAFF_ROLES as readonly string[]).includes(r));
+}
+
+// For office pages. Technicians are sent to their own area (D-015); the database hides office data from them anyway.
+export async function requireStaff() {
+  const ctx = await requireUser();
+  if (ctx.person && !isStaff(ctx.person.roles) && ctx.person.roles.includes("technician")) redirect("/my-jobs");
+  return ctx;
+}
+
+// For the technician area. Office staff are sent back to the office screens.
+export async function requireTechnician() {
+  const ctx = await requireUser();
+  if (!ctx.person) redirect("/login");
+  if (!ctx.person.roles.includes("technician")) redirect("/enquiries");
+  return { ...ctx, person: ctx.person };
 }

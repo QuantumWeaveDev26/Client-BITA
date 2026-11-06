@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Button, Card, Checkbox, ErrorNote, Field, Input, PageHeader, SecondaryButton } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { addContact, deleteContact, updateContact, updateCustomer } from "../actions";
 import { CustomerForm } from "../customer-form";
 
@@ -14,7 +14,7 @@ export default async function CustomerPage({
 }) {
   const { id } = await params;
   const { error, saved } = await searchParams;
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
 
   const { data: customer } = await supabase.from("customers").select("*").eq("id", id).maybeSingle();
   if (!customer) notFound();

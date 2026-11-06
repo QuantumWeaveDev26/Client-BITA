@@ -2,11 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { Constants, type Enums } from "@/lib/db/types";
 import { friendlyError, text } from "@/lib/forms";
 
-type Supabase = Awaited<ReturnType<typeof requireUser>>["supabase"];
+type Supabase = Awaited<ReturnType<typeof requireStaff>>["supabase"];
 
 function jobFields(fd: FormData) {
   const methods = fd
@@ -37,7 +37,7 @@ async function savePoFile(supabase: Supabase, jobId: string, fd: FormData): Prom
 }
 
 export async function createJob(fd: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const fields = jobFields(fd);
   const { data, error } = await supabase.from("jobs").insert(fields).select("id").single();
   if (error) redirect("/jobs/new?error=" + encodeURIComponent(friendlyError(error.message)));
@@ -50,7 +50,7 @@ export async function createJob(fd: FormData) {
 }
 
 export async function updateJob(id: string, fd: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const status = text(fd, "status") as Enums<"job_status"> | null;
   const { error } = await supabase
     .from("jobs")

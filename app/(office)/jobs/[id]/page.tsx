@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Card, ErrorNote, PageHeader } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { formatIST } from "../../enquiries/labels";
 import { updateJob } from "../actions";
 import { JobForm } from "../job-form";
@@ -18,7 +18,7 @@ export default async function JobPage({
 }) {
   const { id } = await params;
   const { error, saved } = await searchParams;
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
 
   const { data: job } = await supabase.from("jobs").select("*").eq("id", id).maybeSingle();
   if (!job) notFound();
