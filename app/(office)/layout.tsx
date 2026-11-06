@@ -3,9 +3,14 @@ import type { ReactNode } from "react";
 import { requireUser } from "@/lib/auth";
 import { signOut } from "../(auth)/login/actions";
 
+// Menu for every stage 1 screen. Pages not built yet show the "not found" page.
 const NAV = [
+  { href: "/dashboard", label: "Dashboard" },
   { href: "/enquiries", label: "Enquiries" },
   { href: "/customers", label: "Customers" },
+  { href: "/quotations", label: "Quotations" },
+  { href: "/jobs", label: "Jobs" },
+  { href: "/registers", label: "Registers" },
 ];
 
 export default async function OfficeLayout({ children }: { children: ReactNode }) {
