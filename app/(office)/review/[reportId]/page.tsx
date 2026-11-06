@@ -43,8 +43,10 @@ import {
   refreshReportFromInspection,
   returnReportToTechnician,
   sendReportForReview,
+  updateReportContent,
 } from "../actions";
 import { PrintButton } from "@/app/(reports)/report-preview/[method]/print-button";
+import { ReportEditor } from "./report-editor";
 import "@/templates/reports/report.css";
 
 export const metadata = { title: "Technical report review – BITA" };
@@ -59,10 +61,10 @@ export default async function ReportReviewPage({
   searchParams,
 }: {
   params: Promise<{ reportId: string }>;
-  searchParams: Promise<{ error?: string; saved?: string }>;
+  searchParams: Promise<{ error?: string; saved?: string; edit?: string }>;
 }) {
   const { reportId } = await params;
-  const { error, saved } = await searchParams;
+  const { error, saved, edit } = await searchParams;
 
   if (!validUuid(reportId)) notFound();
 
@@ -170,11 +172,18 @@ export default async function ReportReviewPage({
               <ButtonLink href={`/review/${report.id}/history`} variant="secondary" size="sm">
                 Correction history
               </ButtonLink>
-              {isApproved && (
-                <ButtonLink href={`/review/${report.id}/pdf`} variant="primary" size="sm">
-                  Download signed PDF
+              {supportedMethod(report.method) && (
+                <ButtonLink href={`/review/${report.id}/docx`} variant="secondary" size="sm">
+                  Download Word (.docx)
                 </ButtonLink>
               )}
+              <ButtonLink
+                href={`/review/${report.id}/pdf`}
+                variant={isApproved ? "primary" : "secondary"}
+                size="sm"
+              >
+                {isApproved ? "Download signed PDF" : "Download PDF"}
+              </ButtonLink>
               <PrintButton />
             </>
           }
@@ -336,6 +345,17 @@ export default async function ReportReviewPage({
             </Card>
           )}
         </div>
+
+        {supportedMethod(report.method) && (
+          <ReportEditor
+            method={report.method}
+            reportDate={report.report_date}
+            readings={readings}
+            isApproved={isApproved}
+            defaultOpen={edit === "1"}
+            action={updateReportContent.bind(null, report.id)}
+          />
+        )}
 
         <SectionTitle>
           BITA paper report preview ({isApproved ? "Approved with signature & seal" : "Draft — signature & seal withheld"})

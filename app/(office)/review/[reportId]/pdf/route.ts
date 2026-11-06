@@ -3,7 +3,7 @@ import { requireStaff } from "@/lib/auth";
 import { loadReportApprovalAssets } from "@/lib/reports/branding.server";
 import {
   extractReadings,
-  generateSignedReportPdfBytes,
+  generateReportPdfBytes,
   reportPdfStoragePath,
   validUuid,
 } from "@/lib/reports/review";
@@ -32,38 +32,39 @@ export async function GET(
     return new NextResponse("Report not found", { status: 404 });
   }
 
-  if (!report.approved_at || !["approved", "sent"].includes(report.status)) {
-    return new NextResponse(
-      "Signed PDF is available only after technical reviewer approval (R27).",
-      { status: 403 }
-    );
-  }
-
-  const storagePath = report.pdf_path || reportPdfStoragePath(report.job_id, report.report_no);
+  const isApproved =
+    (report.status === "approved" || report.status === "sent") && !!report.approved_at;
   const safeFileName =
-    report.report_no.replace(/[^A-Za-z0-9._-]+/g, "-") + ".pdf";
+    report.report_no.replace(/[^A-Za-z0-9._-]+/g, "-") +
+    (isApproved ? ".pdf" : "-draft.pdf");
 
-  // Try downloading from private reports bucket first
-  const { data: storedBlob } = await supabase.storage
-    .from("reports")
-    .download(storagePath);
+  if (isApproved) {
+    const storagePath =
+      report.pdf_path || reportPdfStoragePath(report.job_id, report.report_no);
+    const { data: storedBlob } = await supabase.storage
+      .from("reports")
+      .download(storagePath);
 
-  if (storedBlob && storedBlob.size > 0) {
-    const ab = await storedBlob.arrayBuffer();
-    return new NextResponse(ab, {
-      status: 200,
-      headers: {
-        "Content-Type": "application/pdf",
-        "Content-Disposition": `inline; filename="${safeFileName}"`,
-        "Cache-Control": "private, no-store",
-      },
-    });
+    if (storedBlob && storedBlob.size > 0) {
+      const ab = await storedBlob.arrayBuffer();
+      return new NextResponse(ab, {
+        status: 200,
+        headers: {
+          "Content-Type": "application/pdf",
+          "Content-Disposition": `inline; filename="${safeFileName}"`,
+          "Cache-Control": "private, no-store",
+        },
+      });
+    }
   }
 
-  // Fallback: deterministically render the signed PDF bytes on the fly
   const [inspectionRes, jobRes] = await Promise.all([
     report.inspection_id
-      ? supabase.from("inspections").select("readings").eq("id", report.inspection_id).maybeSingle()
+      ? supabase
+          .from("inspections")
+          .select("readings")
+          .eq("id", report.inspection_id)
+          .maybeSingle()
       : Promise.resolve({ data: null }),
     supabase
       .from("jobs")
@@ -74,17 +75,13 @@ export async function GET(
 
   const readings = extractReadings(report.content, inspectionRes.data?.readings);
   const assets = await loadReportApprovalAssets(supabase, {
-    approved: true,
+    approved: isApproved,
     approvedAt: report.approved_at,
     signatoryId: report.signatory_id,
     approvedBy: report.approved_by,
   });
 
-  if (!assets.approval.approved) {
-    return new NextResponse("Report approval metadata missing", { status: 500 });
-  }
-
-  const pdfBytes = generateSignedReportPdfBytes({
+  const pdfBytes = generateReportPdfBytes({
     reportNo: report.report_no,
     reportDate: report.report_date,
     method: report.method,

@@ -178,10 +178,10 @@ function pdfEscape(text: string): string {
 }
 
 /**
- * Generates a self-contained A4 PDF 1.4 binary document for an approved report.
- * Only called after reviewer approval (R27).
+ * Generates a self-contained A4 PDF 1.4 binary document for a report.
+ * Signature and seal are included only when approval.approved === true (R27).
  */
-export function generateSignedReportPdfBytes(input: {
+export function generateReportPdfBytes(input: {
   reportNo: string;
   reportDate: string;
   method: Enums<"test_method">;
@@ -189,12 +189,16 @@ export function generateSignedReportPdfBytes(input: {
   customerName: string;
   readings: ReportReadings;
   letterhead?: ReportLetterhead;
-  approval: Extract<ReportApproval, { approved: true }>;
+  approval: ReportApproval;
 }): Uint8Array {
   const lh = input.letterhead ?? DEFAULT_DEV_LETTERHEAD;
   const r = input.readings;
   const lines: string[] = [];
 
+  if (!input.approval.approved) {
+    lines.push("DRAFT — NOT APPROVED FOR ISSUE (SIGNATURE & SEAL WITHHELD)");
+    lines.push("--------------------------------------------------------------------------------");
+  }
   lines.push(lh.name);
   for (const addr of lh.addressLines) lines.push(addr);
   if (lh.contactLines) {
@@ -246,14 +250,18 @@ export function generateSignedReportPdfBytes(input: {
   }
 
   lines.push("--------------------------------------------------------------------------------");
-  lines.push("TECHNICAL APPROVAL & SIGN-OFF (R26 / R27):");
-  lines.push(`  For ${lh.name}`);
-  lines.push(`  Approved Signatory : ${input.approval.signatoryName}`);
-  if (input.approval.signatoryQualification) {
-    lines.push(`  Designation        : ${input.approval.signatoryQualification}`);
+  if (input.approval.approved) {
+    lines.push("TECHNICAL APPROVAL & SIGN-OFF (R26 / R27):");
+    lines.push(`  For ${lh.name}`);
+    lines.push(`  Approved Signatory : ${input.approval.signatoryName}`);
+    if (input.approval.signatoryQualification) {
+      lines.push(`  Designation        : ${input.approval.signatoryQualification}`);
+    }
+    lines.push(`  Approved At (UTC)  : ${input.approval.approvedAt}`);
+    lines.push("  Stamp / Seal       : [SIGNED & SEALED AFTER TECHNICAL APPROVAL]");
+  } else {
+    lines.push("STATUS: DRAFT — AWAITING TECHNICAL REVIEWER APPROVAL");
   }
-  lines.push(`  Approved At (UTC)  : ${input.approval.approvedAt}`);
-  lines.push("  Stamp / Seal       : [SIGNED & SEALED AFTER TECHNICAL APPROVAL]");
 
   const streamLines: string[] = ["BT", "/F1 9 Tf", "36 806 Td", "12 TL"];
   for (const rawLine of lines.slice(0, 62)) {
@@ -286,6 +294,89 @@ export function generateSignedReportPdfBytes(input: {
   pdf += `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefStart}\n%%EOF\n`;
 
   return new Uint8Array(Buffer.from(pdf, "utf8"));
+}
+
+export function generateSignedReportPdfBytes(input: {
+  reportNo: string;
+  reportDate: string;
+  method: Enums<"test_method">;
+  jobNo: string;
+  customerName: string;
+  readings: ReportReadings;
+  letterhead?: ReportLetterhead;
+  approval: Extract<ReportApproval, { approved: true }>;
+}): Uint8Array {
+  return generateReportPdfBytes(input);
+}
+
+/**
+ * Parses admin edits from the `/review/[reportId]` Edit report form into a clean `ReportReadings` object,
+ * driven dynamically by `fieldsForMethod(method)` and `REPEATING_GROUPS` in `lib/reports/fields.ts`.
+ */
+export function parseEditedReportReadings(
+  method: Enums<"test_method">,
+  fd: FormData,
+  baseReadings: ReportReadings = {}
+): ReportReadings {
+  const result: Record<string, unknown> = { ...(baseReadings as Record<string, unknown>) };
+
+  if (supportedMethod(method)) {
+    for (const def of fieldsForMethod(method)) {
+      const rawVal = fd.get(`reading_${def.key}`);
+      const otherVal = fd.get(`reading_${def.key}__other`);
+      const chosenRaw =
+        typeof rawVal === "string" && rawVal === "__OTHER__" && typeof otherVal === "string"
+          ? otherVal
+          : rawVal;
+
+      if (typeof chosenRaw !== "string") continue;
+      const trimmed = chosenRaw.trim();
+      if (!trimmed) {
+        result[def.key] = null;
+      } else if (def.input === "number") {
+        const parsed = Number(trimmed);
+        result[def.key] = Number.isFinite(parsed) ? parsed : trimmed;
+      } else {
+        result[def.key] = trimmed;
+      }
+    }
+  }
+
+  for (const group of REPEATING_GROUPS) {
+    const countRaw = fd.get(`${group.key}_count`);
+    const count = typeof countRaw === "string" ? Math.max(0, Math.min(100, Number(countRaw) || 0)) : 0;
+    const rows: Record<string, string | number | null>[] = [];
+
+    for (let i = 0; i < count; i += 1) {
+      const row: Record<string, string | number | null> = {};
+      let hasAnyValue = false;
+      for (const fieldDef of group.fields) {
+        const cellRaw = fd.get(`${group.key}.${i}.${fieldDef.key}`);
+        if (typeof cellRaw !== "string") {
+          row[fieldDef.key] = null;
+          continue;
+        }
+        const trimmed = cellRaw.trim();
+        if (!trimmed) {
+          row[fieldDef.key] = null;
+        } else if (fieldDef.input === "number") {
+          const parsed = Number(trimmed);
+          row[fieldDef.key] = Number.isFinite(parsed) ? parsed : trimmed;
+          hasAnyValue = true;
+        } else {
+          row[fieldDef.key] = trimmed;
+          hasAnyValue = true;
+        }
+      }
+      if (hasAnyValue) {
+        rows.push(row);
+      }
+    }
+
+    result[group.key] = rows;
+  }
+
+  return result as unknown as ReportReadings;
 }
 
 export type AuditFieldDiff = {
