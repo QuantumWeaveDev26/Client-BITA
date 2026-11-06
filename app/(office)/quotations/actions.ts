@@ -68,7 +68,9 @@ export async function createQuotation(fd: FormData) {
       .from("enquiries")
       .update({ status: "quoted" })
       .eq("id", fields.enquiry_id)
-      .in("status", ["new", "linked"]);
+      .neq("status", "converted");
+    revalidatePath(`/enquiries/${fields.enquiry_id}`);
+    revalidatePath("/enquiries");
   }
 
   const fileError = await saveQuotationPdf(supabase, data.id, fd);

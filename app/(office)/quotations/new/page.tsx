@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Card, EmptyRow, ErrorNote, List, ListRow, Mono, PageHeader, SectionTitle } from "@/components/ui";
 import { requireStaff } from "@/lib/auth";
+import { resolveEnquiryAttention } from "../../jobs/closure";
 import { formatINR } from "../../jobs/labels";
 import { createQuotation } from "../actions";
 import { formatDateIN, QUOTATION_STATUS_LABEL } from "../labels";
@@ -23,19 +24,37 @@ export default async function NewQuotationPage({
   if (enquiryId) {
     const { data: enquiry } = await supabase
       .from("enquiries")
-      .select("id, customer_id, subject, from_name")
+      .select("id, customer_id, subject, from_name, from_address")
       .eq("id", enquiryId)
       .maybeSingle();
     if (enquiry) {
+      const resolvedCustomerId = enquiry.customer_id ?? customerIdParam ?? undefined;
+      const { data: contacts } = resolvedCustomerId
+        ? await supabase
+            .from("customer_contacts")
+            .select("name, email, mobile")
+            .eq("customer_id", resolvedCustomerId)
+            .order("name")
+        : { data: [] };
+
       defaults = {
         enquiry_id: enquiry.id,
-        customer_id: enquiry.customer_id ?? customerIdParam ?? undefined,
+        customer_id: resolvedCustomerId,
         subject: enquiry.subject ?? undefined,
-        attention: enquiry.from_name ?? undefined,
+        attention: resolveEnquiryAttention(enquiry, contacts ?? []),
       };
     }
   } else if (customerIdParam) {
-    defaults = { customer_id: customerIdParam };
+    const { data: contacts } = await supabase
+      .from("customer_contacts")
+      .select("name")
+      .eq("customer_id", customerIdParam)
+      .order("name")
+      .limit(1);
+    defaults = {
+      customer_id: customerIdParam,
+      attention: contacts?.[0]?.name ?? undefined,
+    };
   }
 
   const targetCustomerId = defaults?.customer_id;

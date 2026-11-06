@@ -16,6 +16,11 @@ import { requireStaff } from "@/lib/auth";
 import { daysBetween, greeting, longDateIST, shortDate, todayIST } from "@/lib/dates";
 import { homeFor } from "@/lib/roles";
 import type { Enums } from "@/lib/db/types";
+import {
+  classifyEquipmentAlert,
+  classifyQualificationAlert,
+  isJobReadyToClose,
+} from "../jobs/closure";
 import { formatINR } from "../jobs/labels";
 
 export const metadata = { title: "Home – BITA" };
@@ -27,11 +32,25 @@ export default async function ManagementHome() {
 
   const today = todayIST();
   const weekAhead = todayIST(7);
+  const monthAhead = todayIST(30);
 
-  const [jobs, reviewReports, pendingReports, invoices, draftQuotes, newEnquiries, onSite, leave] = await Promise.all([
+  const [
+    jobs,
+    reviewReports,
+    pendingReports,
+    invoices,
+    draftQuotes,
+    newEnquiries,
+    onSite,
+    leave,
+    qualificationsAlert,
+    equipmentAlert,
+  ] = await Promise.all([
     supabase
       .from("jobs")
-      .select("id, job_no, status, scope, customers(name), assignments(work_date, people(full_name))")
+      .select(
+        "id, job_no, status, scope, customers(name), assignments(work_date, people(full_name)), reports(status, sent_at), invoices(kind, balance)"
+      )
       .neq("status", "closed")
       .order("created_at", { ascending: false }),
     supabase
@@ -49,10 +68,31 @@ export default async function ManagementHome() {
     supabase.from("enquiries").select("id, subject, source, customers(name)").eq("status", "new").order("received_at", { ascending: false }),
     supabase.from("assignments").select("id, people(full_name), jobs(job_no, site, customers(name))").eq("work_date", today),
     supabase.from("technician_messages").select("id, people(full_name)").eq("kind", "leave").gte("received_at", today),
+    supabase
+      .from("qualification_status")
+      .select("id, method, valid_until, is_expired, people(full_name)")
+      .lte("valid_until", monthAhead)
+      .order("valid_until", { ascending: true }),
+    supabase
+      .from("equipment")
+      .select("id, make, model, serial_no, calibration_due, active")
+      .eq("active", true)
+      .lte("calibration_due", monthAhead)
+      .order("calibration_due", { ascending: true }),
   ]);
 
   const openJobs = jobs.data ?? [];
-  const unassigned = openJobs.filter((j) => j.assignments.length === 0 && ["enquiry_received", "awaiting_approval", "scheduled"].includes(j.status));
+  const unassigned = openJobs.filter(
+    (j) => j.assignments.length === 0 && ["enquiry_received", "awaiting_approval", "scheduled"].includes(j.status)
+  );
+  const readyToCloseJobs = openJobs.filter((j) =>
+    isJobReadyToClose({
+      status: j.status,
+      reports: j.reports,
+      invoices: j.invoices,
+    })
+  );
+
   const due = invoices.data ?? [];
   const overdue = due.filter((i) => i.due_date && i.due_date < today);
   // Totals are the balances Zoho Books reports; nothing is calculated as tax or ledger here.
@@ -60,6 +100,30 @@ export default async function ManagementHome() {
   const outstanding = sum(due);
   const dueThisWeek = due.filter((i) => i.due_date && i.due_date >= today && i.due_date <= weekAhead);
   const notYetDue = due.filter((i) => !i.due_date || i.due_date > weekAhead);
+
+  const certAlerts = (qualificationsAlert.data ?? [])
+    .filter((q): q is typeof q & { id: string; method: Enums<"test_method"> } => !!q.id && !!q.method)
+    .map((q) => {
+      const alert = classifyQualificationAlert(
+        {
+          id: q.id,
+          method: q.method,
+          valid_until: q.valid_until,
+          is_expired: q.is_expired,
+          people: q.people,
+        },
+        today
+      );
+      return alert ? { id: q.id, ...alert } : null;
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+
+  const calAlerts = (equipmentAlert.data ?? [])
+    .map((eq) => {
+      const alert = classifyEquipmentAlert(eq, today);
+      return alert ? { id: eq.id, ...alert } : null;
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
 
   type Item = { key: string; tone: Tone; title: string; detail: string; href: string; label: string; primary?: boolean };
   const attention: Item[] = [
@@ -70,7 +134,7 @@ export default async function ManagementHome() {
       detail: [r.jobs?.customers?.name, r.inspections?.missing_fields.length ? `missing ${r.inspections.missing_fields.join(", ")}` : "all readings in"]
         .filter(Boolean)
         .join(" · "),
-      href: `/review`,
+      href: `/review/${r.id}`,
       label: "Review",
       primary: true,
     })),
@@ -81,6 +145,22 @@ export default async function ManagementHome() {
       detail: `${i.number ?? "Invoice"} · ${daysBetween(i.due_date!, today)} days late`,
       href: `/jobs/${i.job_id}`,
       label: "Open",
+    })),
+    ...certAlerts.map((c) => ({
+      key: "cert" + c.id,
+      tone: c.tone,
+      title: c.title,
+      detail: c.detail,
+      href: "/registers?tab=qualifications",
+      label: "Registers",
+    })),
+    ...calAlerts.map((eq) => ({
+      key: "cal" + eq.id,
+      tone: eq.tone,
+      title: eq.title,
+      detail: eq.detail,
+      href: "/registers?tab=equipment",
+      label: "Registers",
     })),
     ...(draftQuotes.data ?? []).map((q) => ({
       key: "q" + q.id,
@@ -97,6 +177,14 @@ export default async function ManagementHome() {
       detail: [j.customers?.name, j.scope].filter(Boolean).join(" · "),
       href: `/jobs/${j.id}`,
       label: "Assign",
+    })),
+    ...readyToCloseJobs.map((j) => ({
+      key: "close" + j.id,
+      tone: "wait" as const,
+      title: `Close completed job ${j.job_no}`,
+      detail: [j.customers?.name, "report sent · no balance outstanding"].filter(Boolean).join(" · "),
+      href: `/jobs/${j.id}`,
+      label: "Close",
     })),
     ...(newEnquiries.data ?? []).map((e) => ({
       key: "e" + e.id,
@@ -161,7 +249,12 @@ export default async function ManagementHome() {
             <SectionTitle link={{ href: "/jobs", label: "View all" }}>Open jobs</SectionTitle>
             <List>
               {openJobs.slice(0, 8).map((j) => {
-                const s = jobStage(j.status, j.assignments);
+                const ready = isJobReadyToClose({
+                  status: j.status,
+                  reports: j.reports,
+                  invoices: j.invoices,
+                });
+                const s = ready ? { label: "Ready to close", tone: "ok" as Tone } : jobStage(j.status, j.assignments);
                 return (
                   <ListRow
                     key={j.id}

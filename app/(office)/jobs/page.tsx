@@ -1,7 +1,8 @@
 import Link from "next/link";
-import { Badge, ButtonLink, Input, PageHeader, Select } from "@/components/ui";
+import { Badge, ButtonLink, Input, PageHeader, Select, Status } from "@/components/ui";
 import { requireStaff } from "@/lib/auth";
 import { Constants, type Enums } from "@/lib/db/types";
+import { isJobReadyToClose } from "./closure";
 import { JOB_STATUS_LABEL, METHOD_LABEL } from "./labels";
 
 export const metadata = { title: "Jobs – BITA" };
@@ -12,7 +13,9 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
 
   let query = supabase
     .from("jobs")
-    .select("id, job_no, status, scope, site, test_methods, po_number, created_at, customers(name)")
+    .select(
+      "id, job_no, status, scope, site, test_methods, po_number, created_at, customers(name), reports(status, sent_at), invoices(kind, balance)"
+    )
     .order("created_at", { ascending: false })
     .limit(100);
   if (status && (Constants.public.Enums.job_status as readonly string[]).includes(status))
@@ -39,23 +42,31 @@ export default async function JobsPage({ searchParams }: { searchParams: Promise
       </form>
       {error && <p className="text-sm text-ink">{error.message}</p>}
       <ul className="divide-y divide-line rounded-xl border border-line bg-white">
-        {jobs?.map((j) => (
-          <li key={j.id}>
-            <Link href={`/jobs/${j.id}`} className="block px-4 py-3 hover:bg-side">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-mono text-sm font-semibold">{j.job_no}</span>
-                <Badge>{JOB_STATUS_LABEL[j.status]}</Badge>
-                {j.test_methods.map((m) => (
-                  <Badge key={m}>{METHOD_LABEL[m]}</Badge>
-                ))}
-              </div>
-              <div className="mt-1 text-sm">{j.customers?.name}</div>
-              <div className="text-xs text-ink-3">
-                {[j.scope, j.site, j.po_number ? `PO ${j.po_number}` : "No PO yet"].filter(Boolean).join(" · ")}
-              </div>
-            </Link>
-          </li>
-        ))}
+        {jobs?.map((j) => {
+          const readyToClose = isJobReadyToClose({
+            status: j.status,
+            reports: j.reports,
+            invoices: j.invoices,
+          });
+          return (
+            <li key={j.id}>
+              <Link href={`/jobs/${j.id}`} className="block px-4 py-3 hover:bg-side">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-mono text-sm font-semibold">{j.job_no}</span>
+                  <Badge>{JOB_STATUS_LABEL[j.status]}</Badge>
+                  {readyToClose && <Status tone="ok">Ready to close</Status>}
+                  {j.test_methods.map((m) => (
+                    <Badge key={m}>{METHOD_LABEL[m]}</Badge>
+                  ))}
+                </div>
+                <div className="mt-1 text-sm">{j.customers?.name}</div>
+                <div className="text-xs text-ink-3">
+                  {[j.scope, j.site, j.po_number ? `PO ${j.po_number}` : "No PO yet"].filter(Boolean).join(" · ")}
+                </div>
+              </Link>
+            </li>
+          );
+        })}
         {jobs?.length === 0 && <li className="px-4 py-6 text-sm text-ink-3">No jobs found.</li>}
       </ul>
     </>

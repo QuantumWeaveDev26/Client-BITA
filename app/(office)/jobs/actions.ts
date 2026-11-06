@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { requireStaff } from "@/lib/auth";
 import { Constants, type Enums } from "@/lib/db/types";
 import { friendlyError, text } from "@/lib/forms";
+import { isJobReadyToClose } from "./closure";
 
 type Supabase = Awaited<ReturnType<typeof requireStaff>>["supabase"];
 
@@ -62,5 +63,53 @@ export async function updateJob(id: string, fd: FormData) {
   if (error) redirect(`/jobs/${id}?error=` + encodeURIComponent(friendlyError(error.message)));
   const fileError = await savePoFile(supabase, id, fd);
   revalidatePath(`/jobs/${id}`);
+  revalidatePath("/jobs");
+  revalidatePath("/dashboard");
   redirect(`/jobs/${id}` + (fileError ? "?error=" + encodeURIComponent("PO file not saved: " + fileError) : "?saved=1"));
+}
+
+export async function closeJob(id: string) {
+  const { supabase, person } = await requireStaff();
+  if (!person?.roles.some((r) => r === "management" || r === "office")) {
+    redirect(`/jobs/${id}?error=` + encodeURIComponent("Only management or office staff can close a job."));
+  }
+
+  const [jobRes, reportsRes, invoicesRes] = await Promise.all([
+    supabase.from("jobs").select("id, status").eq("id", id).maybeSingle(),
+    supabase.from("reports").select("status, sent_at").eq("job_id", id),
+    supabase.from("invoices").select("kind, balance").eq("job_id", id),
+  ]);
+
+  if (!jobRes.data) redirect("/jobs");
+
+  const ready = isJobReadyToClose({
+    status: jobRes.data.status,
+    reports: reportsRes.data ?? [],
+    invoices: invoicesRes.data ?? [],
+  });
+
+  if (!ready) {
+    redirect(
+      `/jobs/${id}?error=` +
+        encodeURIComponent("Job can only be closed once the report is sent and no invoice balance is outstanding.")
+    );
+  }
+
+  const { error } = await supabase
+    .from("jobs")
+    .update({
+      status: "closed",
+      closed_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+
+  if (error) {
+    redirect(`/jobs/${id}?error=` + encodeURIComponent(friendlyError(error.message)));
+  }
+
+  revalidatePath(`/jobs/${id}`);
+  revalidatePath("/jobs");
+  revalidatePath("/dashboard");
+  revalidatePath("/office");
+  redirect(`/jobs/${id}?saved=closed`);
 }
