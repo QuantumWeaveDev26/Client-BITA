@@ -3,6 +3,7 @@ import type { Database } from "../../../../lib/db/types";
 import { planAndInsertReminders } from "../../../../lib/reminders/plan";
 import { createClient } from "@supabase/supabase-js";
 import { NextResponse } from "next/server";
+import { createHash, timingSafeEqual } from "node:crypto";
 
 export const runtime = "nodejs";
 
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
     ? authHeader.slice(7)
     : authHeader;
 
-  if (!token || token !== expectedSecret) {
+  if (!token || !sameSecret(token, expectedSecret)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
@@ -67,4 +68,11 @@ export async function POST(req: Request) {
     const message = error instanceof Error ? error.message : String(error);
     return NextResponse.json({ ok: false, error: message }, { status: 500 });
   }
+}
+
+// Compares secrets in constant time, so response timing reveals nothing about the secret.
+function sameSecret(given: string, expected: string): boolean {
+  const a = createHash("sha256").update(given).digest();
+  const b = createHash("sha256").update(expected).digest();
+  return timingSafeEqual(a, b);
 }
