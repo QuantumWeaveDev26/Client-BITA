@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge, ButtonLink, Card, ErrorNote, PageHeader, SavedNote } from "@/components/ui";
+import { Badge, Button, ButtonLink, Card, ErrorNote, PageHeader, SavedNote, Status } from "@/components/ui";
 import { requireStaff } from "@/lib/auth";
 import { formatIST } from "../../enquiries/labels";
-import { updateJob } from "../actions";
+import { closeJob, updateJob } from "../actions";
+import { isJobReadyToClose } from "../closure";
 import { JobForm } from "../job-form";
 import { formatINR, JOB_STATUS_LABEL, METHOD_LABEL } from "../labels";
 import { jobFormOptions } from "../options";
@@ -18,7 +19,7 @@ export default async function JobPage({
 }) {
   const { id } = await params;
   const { error, saved } = await searchParams;
-  const { supabase } = await requireStaff();
+  const { supabase, person } = await requireStaff();
 
   const { data: job } = await supabase.from("jobs").select("*").eq("id", id).maybeSingle();
   if (!job) notFound();
@@ -43,14 +44,31 @@ export default async function JobPage({
     : null;
   // Outstanding is the sum of the balances Zoho Books reports; nothing is calculated here.
   const outstanding = (invoices.data ?? []).reduce((sum, i) => sum + (i.balance ?? 0), 0);
+  const canWriteJob = !!person?.roles.some((r) => r === "management" || r === "office");
+  const readyToClose = isJobReadyToClose({
+    status: job.status,
+    reports: reports.data ?? [],
+    invoices: invoices.data ?? [],
+  });
 
   return (
     <>
-      <PageHeader title={job.job_no} />
+      <PageHeader
+        title={job.job_no}
+        action={
+          readyToClose && canWriteJob ? (
+            <form action={closeJob.bind(null, job.id)}>
+              <Button type="submit">Close job</Button>
+            </form>
+          ) : undefined
+        }
+      />
       <ErrorNote message={error} />
       {saved && <SavedNote />}
-      <div className="mb-4 flex flex-wrap gap-2">
+      <div className="mb-4 flex flex-wrap items-center gap-2">
         <Badge>{JOB_STATUS_LABEL[job.status]}</Badge>
+        {readyToClose && <Status tone="ok">Ready to close</Status>}
+        {job.closed_at && <span className="text-xs text-ink-3">Closed {formatIST(job.closed_at)}</span>}
         {job.test_methods.map((m) => (
           <Badge key={m}>{METHOD_LABEL[m]}</Badge>
         ))}
@@ -107,7 +125,10 @@ export default async function JobPage({
                 <dd>
                   {quotation?.data ? (
                     <>
-                      {quotation.data.ref_no ?? "Draft"} ({quotation.data.status})
+                      <Link href={`/quotations/${quotation.data.id}`} className="text-ink underline">
+                        {quotation.data.ref_no ?? "Draft"}
+                      </Link>{" "}
+                      ({quotation.data.status})
                       <ul className="mt-1 list-disc pl-5 text-xs text-ink-2">
                         {quotation.data.quotation_items.map((it, n) => (
                           <li key={n}>
@@ -176,7 +197,10 @@ export default async function JobPage({
             <ul className="space-y-1 text-sm">
               {reports.data?.map((r) => (
                 <li key={r.id}>
-                  {r.report_no} · {METHOD_LABEL[r.method]} · {r.status}
+                  <Link href={`/review/${r.id}`} className="font-medium text-ink underline">
+                    {r.report_no}
+                  </Link>{" "}
+                  · {METHOD_LABEL[r.method]} · {r.status}
                   {r.sent_at && <span className="text-xs text-ink-3"> · sent {formatIST(r.sent_at)}</span>}
                 </li>
               ))}

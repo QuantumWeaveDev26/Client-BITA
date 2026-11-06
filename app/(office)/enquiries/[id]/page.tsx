@@ -39,7 +39,17 @@ export default async function EnquiryPage({
     <>
       <PageHeader
         title={enquiry.subject || "(no subject)"}
-        action={enquiry.customer_id ? <ButtonLink href={`/jobs/new?enquiry=${id}`}>Create job</ButtonLink> : undefined}
+        action={
+          <>
+            <ButtonLink
+              href={`/quotations/new?enquiry=${id}`}
+              variant={enquiry.customer_id ? "secondary" : "primary"}
+            >
+              Draft quotation
+            </ButtonLink>
+            {enquiry.customer_id && <ButtonLink href={`/jobs/new?enquiry=${id}`}>Create job</ButtonLink>}
+          </>
+        }
       />
       <ErrorNote message={error} />
       <div className="mb-4 flex flex-wrap gap-2">
