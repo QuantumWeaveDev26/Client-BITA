@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ requireUser: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ requireUser: mocks.requireUser }));
+const mocks = vi.hoisted(() => ({ requireStaff: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ requireStaff: mocks.requireStaff }));
 vi.mock("next/cache", () => ({ revalidatePath: vi.fn() }));
 import { GET, POST } from "./[register]/[id]/certificate/route";
 
@@ -18,7 +18,7 @@ function setup(path: string | null, options: { hidden?: boolean; error?: boolean
   const createSignedUrl = vi.fn().mockResolvedValue({ data: { signedUrl: "https://example.test/private-certificate" }, error: null });
   const upload = vi.fn().mockResolvedValue({ data: {}, error: null });
   const supabase = { from: vi.fn().mockReturnValue(query), storage: { from: vi.fn().mockReturnValue({ createSignedUrl, upload }) } };
-  mocks.requireUser.mockResolvedValue({ supabase, person: { roles: ["management"] } });
+  mocks.requireStaff.mockResolvedValue({ supabase, person: { roles: ["management"] } });
   return { supabase, createSignedUrl, query, upload };
 }
 
@@ -28,7 +28,7 @@ describe("private certificate downloads", () => {
   it("rejects invalid record kinds and ids before querying storage", async () => {
     expect((await GET(request, context("people"))).status).toBe(404);
     expect((await GET(request, context("equipment", "../other"))).status).toBe(404);
-    expect(mocks.requireUser).not.toHaveBeenCalled();
+    expect(mocks.requireStaff).not.toHaveBeenCalled();
   });
 
   it("does not sign missing records hidden by RLS", async () => {
@@ -82,12 +82,12 @@ describe("management certificate uploads", () => {
     setup(null);
     const response = await POST(uploadRequest({ origin: "https://other.example.test" }), context());
     expect(response.status).toBe(403);
-    expect(mocks.requireUser).not.toHaveBeenCalled();
+    expect(mocks.requireStaff).not.toHaveBeenCalled();
   });
 
   it("rejects office users before accepting uploads", async () => {
     const { supabase, upload } = setup(null);
-    mocks.requireUser.mockResolvedValue({ supabase, person: { roles: ["office"] } });
+    mocks.requireStaff.mockResolvedValue({ supabase, person: { roles: ["office"] } });
     expect((await POST(uploadRequest(), context())).status).toBe(403);
     expect(upload).not.toHaveBeenCalled();
   });

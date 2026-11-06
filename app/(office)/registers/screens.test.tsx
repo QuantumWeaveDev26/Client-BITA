@@ -5,8 +5,8 @@ import { join } from "node:path";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Tables } from "@/lib/db/types";
 
-const mocks = vi.hoisted(() => ({ requireUser: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ requireUser: mocks.requireUser }));
+const mocks = vi.hoisted(() => ({ requireStaff: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ requireStaff: mocks.requireStaff }));
 vi.mock("@/components/ui", async () => await import("../../../components/ui"));
 vi.mock("./actions", () => ({ saveRegister: vi.fn(async () => {}) }));
 vi.mock("next/link", () => ({ default: ({ href, children, ...props }: { href: string; children: React.ReactNode }) => <a href={href} {...props}>{children}</a> }));
@@ -38,7 +38,7 @@ function setup(roles = ["management"], failure = false) {
     };
     return query;
   });
-  mocks.requireUser.mockResolvedValue({ person: { roles }, supabase: { from } });
+  mocks.requireStaff.mockResolvedValue({ person: { roles }, supabase: { from } });
 }
 
 // Optional export for local Chromium checks. Contains only the invented fixtures above.

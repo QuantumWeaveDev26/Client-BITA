@@ -3,7 +3,7 @@
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { friendlyError } from "@/lib/forms";
 import { equipmentFields, isId, isRegister, personFields, qualificationFields, type Register } from "./fields";
 
@@ -20,7 +20,7 @@ function errorMessage(error: { message: string }) {
 export async function saveRegister(register: Register, recordId: string, fd: FormData) {
   if (!isRegister(register) || (recordId !== "new" && !isId(recordId))) redirect("/registers");
   const path = `/registers/${register}/${recordId}`;
-  const { supabase, person } = await requireUser();
+  const { supabase, person } = await requireStaff();
   if (!person?.roles.includes("management")) fail("/registers", "Only management can change registers.");
   const isNew = recordId === "new";
   const id = isNew ? randomUUID() : recordId;

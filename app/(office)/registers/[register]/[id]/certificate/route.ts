@@ -1,4 +1,4 @@
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { CERTIFICATE_TYPES, certificateError, isId, MAX_CERTIFICATE_BYTES } from "../../../fields";
@@ -34,7 +34,7 @@ export async function POST(request: Request, { params }: Context) {
   const { register, id } = await params;
   if ((register !== "qualifications" && register !== "equipment") || !isId(id)) return new Response("Not found", { status: 404 });
   if (request.headers.get("origin") !== new URL(request.url).origin) return new Response("Upload must come from this app.", { status: 403 });
-  const { supabase, person } = await requireUser();
+  const { supabase, person } = await requireStaff();
   if (!person?.roles.includes("management")) return new Response("Only management can upload certificates.", { status: 403 });
   const result = (message?: string) => {
     const target = new URL(`/registers/${register}/${id}`, request.url);
@@ -75,7 +75,7 @@ export async function POST(request: Request, { params }: Context) {
 export async function GET(_request: Request, { params }: Context) {
   const { register, id } = await params;
   if ((register !== "qualifications" && register !== "equipment") || !isId(id)) return new Response("Not found", { status: 404 });
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   let path: string | null;
   let prefix: string;
   if (register === "qualifications") {

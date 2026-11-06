@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const mocks = vi.hoisted(() => ({ requireUser: vi.fn(), revalidatePath: vi.fn() }));
-vi.mock("@/lib/auth", () => ({ requireUser: mocks.requireUser }));
+const mocks = vi.hoisted(() => ({ requireStaff: vi.fn(), revalidatePath: vi.fn() }));
+vi.mock("@/lib/auth", () => ({ requireStaff: mocks.requireStaff }));
 vi.mock("next/cache", () => ({ revalidatePath: mocks.revalidatePath }));
 vi.mock("next/navigation", () => ({ redirect: (url: string) => { throw new Error(`REDIRECT ${url}`); } }));
 vi.mock("@/lib/forms", async () => await import("../../../lib/forms"));
@@ -20,7 +20,7 @@ function database(roles = ["management"]) {
   query.maybeSingle.mockResolvedValue({ data: { person_id: PERSON }, error: null });
   const upload = vi.fn().mockResolvedValue({ error: null });
   const supabase = { from: vi.fn().mockReturnValue(query), storage: { from: vi.fn().mockReturnValue({ upload }) } };
-  mocks.requireUser.mockResolvedValue({ supabase, person: { id: PERSON, roles } });
+  mocks.requireStaff.mockResolvedValue({ supabase, person: { id: PERSON, roles } });
   return { query, supabase, upload };
 }
 
