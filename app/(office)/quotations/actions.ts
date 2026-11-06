@@ -2,12 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { requireUser } from "@/lib/auth";
+import { requireStaff } from "@/lib/auth";
 import { Constants, type Enums } from "@/lib/db/types";
 import { friendlyError, text } from "@/lib/forms";
 import { DEFAULT_QUOTATION_TERMS } from "./labels";
 
-type Supabase = Awaited<ReturnType<typeof requireUser>>["supabase"];
+type Supabase = Awaited<ReturnType<typeof requireStaff>>["supabase"];
 
 function num(fd: FormData, name: string): number | null {
   const raw = text(fd, name);
@@ -40,7 +40,7 @@ async function saveQuotationPdf(supabase: Supabase, quotationId: string, fd: For
 }
 
 export async function createQuotation(fd: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const fields = quotationFields(fd);
   if (!fields.customer_id) {
     redirect("/quotations/new?error=" + encodeURIComponent("Please choose a customer."));
@@ -79,7 +79,7 @@ export async function createQuotation(fd: FormData) {
 }
 
 export async function updateQuotation(id: string, fd: FormData) {
-  const { supabase, person } = await requireUser();
+  const { supabase, person } = await requireStaff();
   const statusRaw = text(fd, "status");
   const status =
     statusRaw && (Constants.public.Enums.quotation_status as readonly string[]).includes(statusRaw)
@@ -120,7 +120,7 @@ export async function updateQuotation(id: string, fd: FormData) {
 
 // R10: Only Anand Teertha or S. Radhakrishnan (management role) can approve and send a quotation.
 export async function approveQuotation(id: string) {
-  const { supabase, person } = await requireUser();
+  const { supabase, person } = await requireStaff();
   if (!person || !person.roles.includes("management")) {
     redirect(`/quotations/${id}?error=` + encodeURIComponent("Only management can approve a quotation (R10)."));
   }
@@ -140,7 +140,7 @@ export async function approveQuotation(id: string) {
 }
 
 export async function setQuotationStatus(id: string, fd: FormData) {
-  const { supabase, person } = await requireUser();
+  const { supabase, person } = await requireStaff();
   const statusRaw = text(fd, "status");
   if (!statusRaw || !(Constants.public.Enums.quotation_status as readonly string[]).includes(statusRaw)) {
     redirect(`/quotations/${id}`);
@@ -176,7 +176,7 @@ export async function setQuotationStatus(id: string, fd: FormData) {
 
 // R11: Quotations have no expiry date. Management decides when a quotation is to be revised.
 export async function reviseQuotation(id: string) {
-  const { supabase, person } = await requireUser();
+  const { supabase, person } = await requireStaff();
   if (!person || !person.roles.includes("management")) {
     redirect(`/quotations/${id}?error=` + encodeURIComponent("Only management can revise a quotation (R11)."));
   }
@@ -228,7 +228,7 @@ export async function reviseQuotation(id: string) {
 }
 
 export async function addQuotationItem(quotationId: string, fd: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const description = text(fd, "description");
   if (!description) {
     redirect(`/quotations/${quotationId}?error=` + encodeURIComponent("Item description is required."));
@@ -249,7 +249,7 @@ export async function addQuotationItem(quotationId: string, fd: FormData) {
 }
 
 export async function updateQuotationItem(quotationId: string, itemId: string, fd: FormData) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const description = text(fd, "description");
   if (!description) {
     redirect(`/quotations/${quotationId}?error=` + encodeURIComponent("Item description is required."));
@@ -272,7 +272,7 @@ export async function updateQuotationItem(quotationId: string, itemId: string, f
 }
 
 export async function deleteQuotationItem(quotationId: string, itemId: string) {
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
   const { error } = await supabase
     .from("quotation_items")
     .delete()

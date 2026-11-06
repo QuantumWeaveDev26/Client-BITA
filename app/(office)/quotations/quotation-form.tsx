@@ -1,4 +1,4 @@
-import { Button, Field, Input, Select, Textarea } from "@/components/ui";
+import { Button, Field, Input, SectionTitle, Select, Textarea } from "@/components/ui";
 import { Constants, type Tables } from "@/lib/db/types";
 import { DEFAULT_QUOTATION_TERMS, QUOTATION_STATUS_LABEL } from "./labels";
 
@@ -64,7 +64,11 @@ export function QuotationForm({
       </Field>
 
       <Field label="Kind attention" hint="Contact person or department at the customer">
-        <Input name="attention" placeholder="Purchase / Quality Department" defaultValue={quotation?.attention ?? defaults?.attention ?? ""} />
+        <Input
+          name="attention"
+          placeholder="Purchase / Quality Department"
+          defaultValue={quotation?.attention ?? defaults?.attention ?? ""}
+        />
       </Field>
 
       <Field label="Subject" hint="Component and NDT method, e.g. Ultrasonic Testing of Forged Shafts">
@@ -76,8 +80,8 @@ export function QuotationForm({
       </Field>
 
       {includeFirstItem && (
-        <div className="rounded-md border border-neutral-200 bg-neutral-50 p-3 space-y-3">
-          <p className="text-sm font-semibold text-neutral-800">First priced item (optional – you can add more items after saving)</p>
+        <div className="space-y-3 border-t border-line pt-4">
+          <SectionTitle>First priced item (optional)</SectionTitle>
           <Field label="Component / scope description">
             <Input name="item_description" placeholder="UT of forged shafts at customer works" />
           </Field>

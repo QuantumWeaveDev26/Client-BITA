@@ -1,6 +1,6 @@
-import type { requireUser } from "@/lib/auth";
+import type { requireStaff } from "@/lib/auth";
 
-type Supabase = Awaited<ReturnType<typeof requireUser>>["supabase"];
+type Supabase = Awaited<ReturnType<typeof requireStaff>>["supabase"];
 
 // Choices for the quotation form: customers and open enquiries.
 export async function quotationFormOptions(supabase: Supabase) {

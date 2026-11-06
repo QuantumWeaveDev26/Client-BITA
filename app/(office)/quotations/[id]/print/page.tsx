@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Badge } from "@/components/ui";
-import { requireUser } from "@/lib/auth";
+import { Badge, Status } from "@/components/ui";
+import { requireStaff } from "@/lib/auth";
 import { formatINR } from "../../../jobs/labels";
 import { DEFAULT_QUOTATION_TERMS, formatDateIN, QUOTATION_STATUS_LABEL } from "../../labels";
 import { PrintQuotationButton } from "./print-button";
@@ -10,7 +10,7 @@ import { PrintQuotationButton } from "./print-button";
 // Signatures and seal are shown only once approved by management (R10, R27).
 export default async function QuotationPrintPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { supabase } = await requireUser();
+  const { supabase } = await requireStaff();
 
   const { data: quotation } = await supabase.from("quotations").select("*").eq("id", id).maybeSingle();
   if (!quotation) notFound();
@@ -45,14 +45,12 @@ export default async function QuotationPrintPage({ params }: { params: Promise<{
     <div className="space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div className="flex items-center gap-3">
-          <Link href={`/quotations/${id}`} className="text-sm font-medium text-red-700 underline">
+          <Link href={`/quotations/${id}`} className="text-sm font-medium underline">
             ← Back to quotation
           </Link>
           <Badge>{QUOTATION_STATUS_LABEL[quotation.status]}</Badge>
           {!isApproved && (
-            <span className="text-xs text-amber-800">
-              Draft preview – management approval required before sending (R10)
-            </span>
+            <Status tone="wait">Draft preview – management approval required before sending (R10)</Status>
           )}
         </div>
         <PrintQuotationButton />
